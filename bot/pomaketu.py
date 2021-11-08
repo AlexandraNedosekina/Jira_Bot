@@ -12,12 +12,16 @@ def start(message):
 
 def set_description(message):
     if message.text == 'Поставить задачу':
-        pass
+        bot.register_next_step_handler(message, set_summary)
+        bot.send_messge(message.chat.id,'Введите тему задачи')
     elif message.text == 'Отменить постановку задачи':
         pass
     else:
         bot.register_next_step_handler(message, set_description)
         #bot.edit_message_reply_markup(message.chat.id, reply_markup= keyboard_description())
+
+def set_summary(message):
+    pass
 
 def keyboard_description():
     markup_reply = telebot.types.ReplyKeyboardMarkup(one_time_keyboard = True, resize_keyboard = True)
