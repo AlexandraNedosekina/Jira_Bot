@@ -16,9 +16,7 @@ def set_description(message):
     elif message.text == 'Отменить постановку задачи':
         pass
     else:
-        time.sleep(3)
         bot.register_next_step_handler(message, set_description)
-        time.sleep(3)
         #bot.edit_message_reply_markup(message.chat.id, reply_markup= keyboard_description())
 
 def keyboard_description():
