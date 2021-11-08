@@ -2,7 +2,7 @@ import telebot
 import time
 from config import *
 
-bot = telebot.TeleBot(tokenTelebot)
+bot = telebot.TeleBot(tokenTg)
 
 @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'video', 'voice', 'contact'])
 def start(message):
