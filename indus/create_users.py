@@ -36,5 +36,5 @@ for users in user_data:
         "name": "test1user1"
 }
 )
-response=requests.post(url,headers=headers,data= payload,auth=("najdenov773@gmail.com", "egIkQ7wlxJCoNFgFZ2ed1950"))
+response=requests.post(url,headers=headers,data= payload,auth=("najdenov773@gmail.com", "hBUhBdqwqwVH90NgAOds8AE9"))
 print(response.text) """

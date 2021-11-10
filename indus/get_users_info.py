@@ -8,8 +8,8 @@ headers={
     "Accept": "application/json",
     "Content-Type": "application/json"
 }
-response=requests.get(url,headers=headers,auth=("najdenov773@gmail.com", "egIkQ7wlxJCoNFgFZ2ed1950"))
+response=requests.get(url,headers=headers,auth=("najdenov773@gmail.com", "k5TH4teflUfNRFQcJunw844C"))
 data = response.json()
 for users in data:
-    if users["accountType"] != "app":
+    if users["accountType"] != "app" and users["active"]:
         print(users["displayName"] + " " + users["accountId"])

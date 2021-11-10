@@ -9,13 +9,15 @@ headers={
 }
 
 
-response=requests.get(url,headers=headers,auth=("najdenov773@gmail.com", "hBUhBdqwqwVH90NgAOds8AE9"))
+response=requests.get(url,headers=headers,auth=("najdenov773@gmail.com", "k5TH4teflUfNRFQcJunw844C"))
 data = response.json() 
 print(data["total"])#получение количества комментариев под задачей
 #print(data["comments"][0])#обратиться к первому комментарию
+com=data["total"]-1
+print(data["comments"][com]["id"])
 print(data["comments"][0]["body"]["content"][0]["content"][0]["text"])#посмотреть текст комментария
-with io.open("comment.csv","w",encoding="utf-8")as f1:
+""" with io.open("comment.csv","w",encoding="utf-8")as f1:
     f1.write("comment id"+ "," + "comment text" + "\n")
     for comments in data["comments"]:
         f1.write(comments["id"] + "," + comments["body"]["content"][0]["content"][0]["text"]+"\n")
-    f1.close()#заполнение бд
+    f1.close()#заполнение бд """
