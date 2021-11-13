@@ -6,6 +6,12 @@ from config import *
 
 bot = telebot.TeleBot("2086293075:AAGAy2mFCy3TemzxswZvY0bS_sFqkI8qF5A")
 
+class Issue:
+    theme = ""
+    description = ""
+    date = ""
+    booldate = False
+
 @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'video', 'voice', 'contact'])
 def start(message):
     bot.register_next_step_handler(message, set_description)
@@ -28,10 +34,29 @@ def set_summary_and_typeissue(message):
     callback_button2 = types.InlineKeyboardButton(text="Ошибка", callback_data="Bug")
     keyboard.add(callback_button1, callback_button2)
     bot.send_message(message.chat.id,'Выберите тип задачи:', reply_markup= keyboard)
+
+def set_assignee(ID):
     keyboard = types.InlineKeyboardMarkup()
-    callback_button3 = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
-    keyboard.add(callback_button3)
-    bot.send_message(message.chat.id,'Введите Исполнителя.',reply_markup= keyboard)
+    callback_button = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
+    keyboard.add(callback_button)
+    bot.send_message(ID,'Введите Исполнителя.',reply_markup= keyboard)
+
+def set_priority(ID):
+    keyboard = types.InlineKeyboardMarkup()
+    callback_lowest = types.InlineKeyboardButton(text="Lowest", callback_data="Lowest")
+    callback_low = types.InlineKeyboardButton(text="Low", callback_data="Low")
+    callback_medium = types.InlineKeyboardButton(text="Medium", callback_data="Medium")
+    callback_high = types.InlineKeyboardButton(text="High", callback_data="High")
+    callback_highest = types.InlineKeyboardButton(text="Highest", callback_data="Highest")
+    keyboard.add(callback_lowest,callback_low,callback_medium,callback_high,callback_highest)
+    bot.send_message(ID,'Выберите приоритет: ',reply_markup= keyboard)
+
+def set_date(ID):
+    keyboard = types.InlineKeyboardMarkup()
+    callback_button = types.InlineKeyboardButton(text="Пропустить", callback_data="Skip")
+    keyboard.add(callback_button)
+    bot.send_message(ID,'Введите дату выполнения в формате ДД.ММ.ГГ',reply_markup= keyboard)
+
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
@@ -39,10 +64,16 @@ def callback_inline(call):
     if call.message:
         if call.data == "task":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Задача.")
+            set_assignee(call.message.chat.id)
         elif call.data == "Bug":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Ошибка.")
+            set_assignee(call.message.chat.id)
         elif call.data == "assignee":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Исполнитель: " + jirbl.search_user(str(call.from_user.id))[0])
+            set_priority(call.message.chat.id)
+        elif call.data == "Lowest" or call.data == "Low" or call.data == "Medium" or call.data == "High" or call.data == "Highest":
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Приоритет: " + call.data)
+            set_date(call.message.chat.id)
 
 def keyboard_description():
     markup_reply = telebot.types.ReplyKeyboardMarkup(one_time_keyboard = True, resize_keyboard = True)
