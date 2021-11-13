@@ -1,9 +1,10 @@
 import telebot
+import jirbl
 from telebot import types
 import time
 from config import *
 
-bot = telebot.TeleBot(tokenTg)
+bot = telebot.TeleBot("2086293075:AAGAy2mFCy3TemzxswZvY0bS_sFqkI8qF5A")
 
 @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'video', 'voice', 'contact'])
 def start(message):
@@ -27,16 +28,21 @@ def set_summary_and_typeissue(message):
     callback_button2 = types.InlineKeyboardButton(text="Ошибка", callback_data="Bug")
     keyboard.add(callback_button1, callback_button2)
     bot.send_message(message.chat.id,'Выберите тип задачи:', reply_markup= keyboard)
+    keyboard = types.InlineKeyboardMarkup()
+    callback_button3 = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
+    keyboard.add(callback_button3)
+    bot.send_message(message.chat.id,'Введите Исполнителя.',reply_markup= keyboard)
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     # Если сообщение из чата с ботом
     if call.message:
-        
         if call.data == "task":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Задача.")
         elif call.data == "Bug":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Ошибка.")
+        elif call.data == "assignee":
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Исполнитель: " + jirbl.search_user(str(call.from_user.id))[0])
 
 def keyboard_description():
     markup_reply = telebot.types.ReplyKeyboardMarkup(one_time_keyboard = True, resize_keyboard = True)
