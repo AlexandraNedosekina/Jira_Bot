@@ -17,6 +17,7 @@ response = requests.get(url,headers=headers,params=query, auth=("najdenov773@gma
 data = response.json()
 
 issues = data["issues"]
+print(issues[0])
 
 for issue in issues:
     print("ID: " + issue["id"])
