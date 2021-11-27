@@ -84,7 +84,7 @@ def create_issue(summary, description, issuetype, priority, dateList, assignee):
         )
     response=requests.post(url,headers=headers,data= payload,auth=auth)
     print(response.text)
-
+#начало
 def get_user_id(displayName):
     url="https://dimamolodec.atlassian.net/rest/api/2/users/search"
     headers={
@@ -96,3 +96,4 @@ def get_user_id(displayName):
     for users in data:
         if users["displayName"] == displayName:
             return(users["accountId"])
+#конец

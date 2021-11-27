@@ -17,14 +17,14 @@ class Issue:
     dateList = list()
     edit = False
 
-    
+ #   , 'audio', 'document', 'photo', 'video', 'voice', 'contact'
 
 @bot.message_handler(content_types=['text', 'audio', 'document', 'photo', 'video', 'voice', 'contact'])
 def start(message):
     Issue.edit = False
     bot.register_next_step_handler(message, set_description)
-    Issue.description += message.text
-    bot.send_message(message.chat.id,'Записываю',reply_markup= keyboard_description())
+    #Issue.description += message.text
+    bot.send_message(message.chat.id,'Записываю' + message.content_type[0],reply_markup= keyboard_description())
 
 def set_description(message):
     if message.text == 'Поставить задачу':
@@ -44,13 +44,13 @@ def set_summary_and_typeissue(message):
     callback_button2 = types.InlineKeyboardButton(text="Ошибка", callback_data="Bug")
     keyboard.add(callback_button1, callback_button2)
     bot.send_message(message.chat.id,'Выберите тип задачи:', reply_markup= keyboard)
-
+#начало
 def set_assignee(ID):
     keyboard = types.InlineKeyboardMarkup()
     callback_button = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
     keyboard.add(callback_button)
     bot.send_message(ID,'Введите Исполнителя.',reply_markup= keyboard)
-
+#конец
 def set_priority(ID):
     keyboard = types.InlineKeyboardMarkup()
     callback_lowest = types.InlineKeyboardButton(text="Lowest", callback_data="Lowest")
@@ -73,7 +73,7 @@ def add_date(message):
         date_message= message.text.split(".")
         date(int(date_message[2]), int(date_message[1]), int(date_message[0]))
     except:
-        if Issue.edit == False:
+        if not Issue.edit:
             set_date(message.chat.id, message)
             bot.edit_message_reply_markup(message.chat.id, message_id = message.message_id-1, reply_markup= None)
     else:
@@ -81,7 +81,7 @@ def add_date(message):
         Issue.dateList = date_message
         bot.edit_message_reply_markup(message.chat.id, message_id = message.message_id-1, reply_markup= None)
         add_issue(message)
-    
+
 def add_issue(message):
     keyboard = types.InlineKeyboardMarkup()
     callback_button1 = types.InlineKeyboardButton(text="Да, отправить задачу в Jira", callback_data="Send")
@@ -131,6 +131,7 @@ def callback_inline(call):
             # bot.edit_message_text(chat_id= call.message.chat.id, message_id=call.message.message_id, text="Введите номер редактируемого элемента")
             # Issue.edit = True
             # bot.register_next_step_handler(call.message, edit_issue)
+
 
 def keyboard_description():
     markup_reply = telebot.types.ReplyKeyboardMarkup(one_time_keyboard = True, resize_keyboard = True)
