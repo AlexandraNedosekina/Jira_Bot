@@ -12,17 +12,17 @@ payload=json.dumps({
       {
          "key": "TJ"
       },
-      "summary": "REST ye merry gentlemen.",
-      "description": 'Created for test11',
+      "summary": 'Реализовать ветвления у исполнителя задачи',
+      "description": '',
       "issuetype": {
          "name": "Задача"
       },
       "priority": {
-         "id": "4"  #1=highest 2=hight 3=medium 4=low 5=lowest
+         "id": "2"  #1=highest 2=hight 3=medium 4=low 5=lowest
       },
-      "duedate": "2022-05-11",#год-месяц-день
+      "duedate": "2022-11-30",#год-месяц-день
       "assignee": {
-         "id": "616c5b31bcb5740068e92873"
+         "id": "606b41c0b845ed006e98f901"
       }
    }
 }
