@@ -50,6 +50,8 @@ def set_assignee(ID):
     callback_button = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
     keyboard.add(callback_button)
     bot.send_message(ID,'Введите Исполнителя.',reply_markup= keyboard)
+
+    
 #конец
 def set_priority(ID):
     keyboard = types.InlineKeyboardMarkup()
