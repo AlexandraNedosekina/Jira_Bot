@@ -1,10 +1,12 @@
+from logging import exception
 import telebot
 from datetime import date
+from jirbl import get_user_id
 import jirbl
 from telebot import types
-from config import *
+from configSasha import *
 
-bot = telebot.TeleBot("2086293075:AAGAy2mFCy3TemzxswZvY0bS_sFqkI8qF5A")
+bot = telebot.TeleBot(tokenTg)
 
 class Issue:
     summary = ""
@@ -31,7 +33,7 @@ def set_description(message):
         bot.register_next_step_handler(message, set_summary_and_typeissue)
         bot.send_message(message.chat.id,'Введите тему задачи')
     elif message.text == 'Отменить постановку задачи':
-        pass
+        pass#дописать 
     else:
         bot.register_next_step_handler(message, set_description)
         Issue.description += "\n" + message.text
@@ -50,7 +52,10 @@ def set_assignee(ID):
     callback_button = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
     keyboard.add(callback_button)
     bot.send_message(ID,'Введите Исполнителя.',reply_markup= keyboard)
-
+    # Выбор исполнителя по имени , если имя есть в get_user_id , то ок
+    # если нет, то ошибка exception
+    # if ID == 
+    
     
 #конец
 def set_priority(ID):

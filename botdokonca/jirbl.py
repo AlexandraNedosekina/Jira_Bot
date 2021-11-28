@@ -1,11 +1,12 @@
 import requests
 import json
 import io
+from configSasha import *
 
-auth=("najdenov773@gmail.com", "k5TH4teflUfNRFQcJunw844C")
+auth=(login, token)
 
 def search_user(userID):
-    with io.open("bot\\bd.csv","r",encoding="utf-8")as f1:
+    with io.open("botdokonca\\bd.csv","r",encoding="utf-8")as f1:
         user_data = f1.read()
         f1.close()
     data=list()
@@ -14,12 +15,12 @@ def search_user(userID):
         userTgID=users.split(",")[0]
         displayName=users.split(",")[1]
         userJiraID=users.split(",")[2]
-        if userTgID == userID:
-            data.append(displayName)
-            data.append(userJiraID)
-            return data
-        else:
-            return None
+        # if userTgID == userID:
+        data.append(displayName)
+        data.append(userJiraID)
+        return data
+        # else:
+        #     return None
 
 def create_issue(summary, description, issuetype, priority, dateList, assignee):
     idprioryty = '3'

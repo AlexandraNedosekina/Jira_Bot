@@ -111,7 +111,9 @@ def callback_inline(call):
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=f'Вы выбрали тип {call.data}.')
             Data.typeissue = call.data
             set_assignee(call.message.chat.id)
-        elif call.data == 'assignee'
+        elif call.data == 'assignee':
+            pass
+            
             
 ######################################################### ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ########################################################
 def keyboard_description():
