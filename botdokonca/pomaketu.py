@@ -1,8 +1,7 @@
 from logging import exception
 import telebot
 from datetime import date
-from jirbl import get_user_id
-import jirbl
+from jirbl import *
 from telebot import types
 from configSasha import *
 
@@ -54,7 +53,12 @@ def set_assignee(ID):
     bot.send_message(ID,'Введите Исполнителя.',reply_markup= keyboard)
     # Выбор исполнителя по имени , если имя есть в get_user_id , то ок
     # если нет, то ошибка exception
-    # if ID == 
+    if ID in get_user_id():
+        return displayName
+    else:
+        print('Введите имя исполнителя')
+
+
     
     
 #конец
@@ -115,8 +119,8 @@ def callback_inline(call):
             Issue.typeissue = "Ошибка"
             set_assignee(call.message.chat.id)
         elif call.data == "assignee":
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Исполнитель: " + jirbl.search_user(str(call.from_user.id))[0])
-            Issue.assignee = jirbl.search_user(str(call.from_user.id))[0]
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Исполнитель: " + search_user(str(call.from_user.id))[0])
+            Issue.assignee = search_user(str(call.from_user.id))[0]
             set_priority(call.message.chat.id)
         elif call.data == "Lowest" or call.data == "Low" or call.data == "Medium" or call.data == "High" or call.data == "Highest":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Приоритет: " + call.data)
@@ -128,7 +132,7 @@ def callback_inline(call):
             add_issue(call.message)
         elif call.data == "Send":
             bot.edit_message_text(chat_id= call.message.chat.id, message_id=call.message.message_id, text="Задача отправлена в Jira")
-            jirbl.create_issue(Issue.summary, Issue.description, Issue.typeissue, Issue.priority, Issue.dateList, Issue.assignee)
+            create_issue(Issue.summary, Issue.description, Issue.typeissue, Issue.priority, Issue.dateList, Issue.assignee)
             bot.send_message(call.message.chat.id, "Задача поставлена в Jira")
             Issue.description = ""
             Issue.filesCount = 0
