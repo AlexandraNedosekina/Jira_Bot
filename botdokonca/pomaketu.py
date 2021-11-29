@@ -46,22 +46,29 @@ def set_summary_and_typeissue(message):
     keyboard.add(callback_button1, callback_button2)
     bot.send_message(message.chat.id,'Выберите тип задачи:', reply_markup= keyboard)
 #начало
-def set_assignee(ID):
+def set_assignee(ID, message):
+    # users = ID.get_user_id
     keyboard = types.InlineKeyboardMarkup()
     callback_button = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
     keyboard.add(callback_button)
+    bot.register_next_step_handler(message, prosto)
     bot.send_message(ID,'Введите Исполнителя.',reply_markup= keyboard)
     # Выбор исполнителя по имени , если имя есть в get_user_id , то ок
-    # если нет, то ошибка exception
-    if ID in get_user_id():
-        return displayName
-    else:
-        print('Введите имя исполнителя')
-
-
-    
-    
-#конец
+    # если нет, то ввести имя и добавить его в лист юзеров-исполнителей
+#     ID = str(ID)
+#     result = get_user_id(displayName)
+#     if ID in get_user_id():
+#         return ID
+#     else:
+#         ID = result.append(input())
+#         return ID
+# #конец
+def prosto(message):
+    displayName = message.text
+    accountID = get_user_id(displayName)
+    bot.send_message(message.chat.id, accountID)
+    set_priority()
+#
 def set_priority(ID):
     keyboard = types.InlineKeyboardMarkup()
     callback_lowest = types.InlineKeyboardButton(text="Lowest", callback_data="Lowest")
@@ -113,7 +120,7 @@ def callback_inline(call):
         if call.data == "task":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Задача.")
             Issue.typeissue = "Задача"
-            set_assignee(call.message.chat.id)
+            set_assignee(call.message.chat.id, call.message)
         elif call.data == "Bug":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Ошибка.")
             Issue.typeissue = "Ошибка"

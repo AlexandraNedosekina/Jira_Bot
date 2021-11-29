@@ -96,5 +96,5 @@ def get_user_id(displayName):
     data = response.json()
     for users in data:
         if users["displayName"] == displayName:
-            return(users["accountId"])
+           return users["accountId"]
 #конец
