@@ -4,7 +4,7 @@ import jirbl
 from telebot import types
 from config import *
 
-bot = telebot.TeleBot("2086293075:AAGAy2mFCy3TemzxswZvY0bS_sFqkI8qF5A")
+bot = telebot.TeleBot(tokenTg)
 
 class Issue:
     summary = ""
@@ -127,10 +127,9 @@ def callback_inline(call):
             Issue.filesCount = 0
             Issue.dateList = list()
             Issue.edit = True
+
         # elif call.data == "Edit":
-            # bot.edit_message_text(chat_id= call.message.chat.id, message_id=call.message.message_id, text="Введите номер редактируемого элемента")
-            # Issue.edit = True
-            # bot.register_next_step_handler(call.message, edit_issue)
+            # 
 
 
 def keyboard_description():

@@ -5,7 +5,7 @@ import io
 auth=("najdenov773@gmail.com", "k5TH4teflUfNRFQcJunw844C")
 
 def search_user(userID):
-    with io.open("bot\\bd.csv","r",encoding="utf-8")as f1:
+    with io.open("botdokonca\\bd.csv","r",encoding="utf-8")as f1:
         user_data = f1.read()
         f1.close()
     data=list()
