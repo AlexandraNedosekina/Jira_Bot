@@ -282,6 +282,7 @@ def callback_inline(call):
         elif call.data == 'EditAssignee':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             set_assignee(call.message.chat.id)
+<<<<<<< HEAD
         elif call.data == 'EditPriority':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             set_priority(call.message.chat.id)
@@ -291,6 +292,11 @@ def callback_inline(call):
         elif call.data == 'back':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             add_issue(call.message.chat.id)
+=======
+        elif call.data == 'assignee':
+            pass
+            
+>>>>>>> 821c7767380a570c077753e9d7a5e9730e4801dc
             
 ######################################################### ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ########################################################
 

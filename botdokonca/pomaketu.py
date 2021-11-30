@@ -1,8 +1,9 @@
+from logging import exception
 import telebot
 from datetime import date
-import jirbl
+from jirbl import *
 from telebot import types
-from config import *
+from configSasha import *
 
 bot = telebot.TeleBot(tokenTg)
 
@@ -31,7 +32,7 @@ def set_description(message):
         bot.register_next_step_handler(message, set_summary_and_typeissue)
         bot.send_message(message.chat.id,'Введите тему задачи')
     elif message.text == 'Отменить постановку задачи':
-        pass
+        pass#дописать 
     else:
         bot.register_next_step_handler(message, set_description)
         Issue.description += "\n" + message.text
@@ -45,12 +46,29 @@ def set_summary_and_typeissue(message):
     keyboard.add(callback_button1, callback_button2)
     bot.send_message(message.chat.id,'Выберите тип задачи:', reply_markup= keyboard)
 #начало
-def set_assignee(ID):
+def set_assignee(ID, message):
+    # users = ID.get_user_id
     keyboard = types.InlineKeyboardMarkup()
     callback_button = types.InlineKeyboardButton(text="На меня", callback_data="assignee")
     keyboard.add(callback_button)
+    bot.register_next_step_handler(message, prosto)
     bot.send_message(ID,'Введите Исполнителя.',reply_markup= keyboard)
-#конец
+    # Выбор исполнителя по имени , если имя есть в get_user_id , то ок
+    # если нет, то ввести имя и добавить его в лист юзеров-исполнителей
+#     ID = str(ID)
+#     result = get_user_id(displayName)
+#     if ID in get_user_id():
+#         return ID
+#     else:
+#         ID = result.append(input())
+#         return ID
+# #конец
+def prosto(message):
+    displayName = message.text
+    accountID = get_user_id(displayName)
+    bot.send_message(message.chat.id, accountID)
+    set_priority()
+#
 def set_priority(ID):
     keyboard = types.InlineKeyboardMarkup()
     callback_lowest = types.InlineKeyboardButton(text="Lowest", callback_data="Lowest")
@@ -102,14 +120,14 @@ def callback_inline(call):
         if call.data == "task":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Задача.")
             Issue.typeissue = "Задача"
-            set_assignee(call.message.chat.id)
+            set_assignee(call.message.chat.id, call.message)
         elif call.data == "Bug":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Вы выбрали тип Ошибка.")
             Issue.typeissue = "Ошибка"
             set_assignee(call.message.chat.id)
         elif call.data == "assignee":
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Исполнитель: " + jirbl.search_user(str(call.from_user.id))[0])
-            Issue.assignee = jirbl.search_user(str(call.from_user.id))[0]
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Исполнитель: " + search_user(str(call.from_user.id))[0])
+            Issue.assignee = search_user(str(call.from_user.id))[0]
             set_priority(call.message.chat.id)
         elif call.data == "Lowest" or call.data == "Low" or call.data == "Medium" or call.data == "High" or call.data == "Highest":
             bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Приоритет: " + call.data)
@@ -121,7 +139,7 @@ def callback_inline(call):
             add_issue(call.message)
         elif call.data == "Send":
             bot.edit_message_text(chat_id= call.message.chat.id, message_id=call.message.message_id, text="Задача отправлена в Jira")
-            jirbl.create_issue(Issue.summary, Issue.description, Issue.typeissue, Issue.priority, Issue.dateList, Issue.assignee)
+            create_issue(Issue.summary, Issue.description, Issue.typeissue, Issue.priority, Issue.dateList, Issue.assignee)
             bot.send_message(call.message.chat.id, "Задача поставлена в Jira")
             Issue.description = ""
             Issue.filesCount = 0
