@@ -14,8 +14,10 @@ priorityDict = {
                 '4' : 'Low',
                 '5' : 'Lowest'
             }
+usersDict = {}
 
-class Data:
+class Data():
+    description = ''
     email = ''
     password = ''
     accountId_DisplayName = []
@@ -32,25 +34,25 @@ class Data:
 
 @bot.message_handler(commands= 'start',content_types= 'text')
 def start(message):
+    usersDict[message.chat.id] = Data()
     bot.register_next_step_handler(message, get_email)
     bot.send_message(message.chat.id, "Введите вашу почту для регистрации.")
     
 def get_email(message):
-    Data.email = message.text
+    usersDict[message.chat.id].email = message.text
     bot.register_next_step_handler(message, data_verification)
     bot.send_message(message.chat.id, "Укажите пароль.")
 
 def data_verification(message):
-    Data.password = message.text
+    usersDict[message.chat.id].password = message.text
     try:
-        Data.accountId_DisplayName = authentication(Data.email, Data.password)
+        usersDict[message.chat.id].accountId_DisplayName = authentication(usersDict[message.chat.id].email,
+                                                                          usersDict[message.chat.id].password)
     except:
         bot.send_message(message.chat.id, "Данные введены не верно.")
         bot.send_message(message.chat.id, "Повторите попытку")
         start(message)
     else:
-        with open("bot\\descriptions\\" + str(message.chat.id) + ".txt", "w",encoding="utf-8") as file:
-            file.write('')
         try:
             os.makedirs("bot\\descriptions\\" + str(message.chat.id) + "_attacments")
         except:
@@ -81,11 +83,11 @@ def attach_audio(message):
 
 @bot.message_handler(content_types=['text'])
 def set_description(message):
-    if Data.edit:
+    if usersDict[message.chat.id].edit:
         if message.text == '!Завершить редактирование описания':
             add_issue(message.chat.id)
         else:
-            copy_description(message.text, message.chat.id)
+            usersDict[message.chat.id].description += message.text + '\n'
     else:
         if message.text == '!Поставить задачу':
             bot.register_next_step_handler(message, set_summary)
@@ -93,7 +95,7 @@ def set_description(message):
         elif message.text == '!Отменить постановку задачи':
             cancel(message,False)
         else:
-            copy_description(message.text, message.chat.id)
+            usersDict[message.chat.id].description += message.text + '\n'
 
 ################################################### ЗАПОЛНЕНИЕ ЗАГОЛОВКА ###########################################################
 
@@ -101,9 +103,9 @@ def set_summary(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
     else:
-        Data.summary = message.text
-        Data.at_me = False
-        if Data.edit:
+        usersDict[message.chat.id].summary = message.text
+        usersDict[message.chat.id].at_me = False
+        if usersDict[message.chat.id].edit:
             add_issue(message.chat.id)
         else:
             set_issue_type(message.chat.id)
@@ -112,16 +114,16 @@ def set_summary(message):
 
 def set_issue_type(ID):
     keyboard = types.InlineKeyboardMarkup()
-    Data.issue_types = get_issue_types(Data.email,Data.password)
+    usersDict[ID].issue_types = get_issue_types(usersDict[ID].email,usersDict[ID].password)
     passed = False
-    for i in range(len(Data.issue_types)):
+    for i in range(len(usersDict[ID].issue_types)):
         if passed:
             passed= False
-        elif len(Data.issue_types) - i == 1:
-            keyboard.add(types.InlineKeyboardButton(text=Data.issue_types[i], callback_data=Data.issue_types[i]))
+        elif len(usersDict[ID].issue_types) - i == 1:
+            keyboard.add(types.InlineKeyboardButton(text=usersDict[ID].issue_types[i], callback_data=usersDict[ID].issue_types[i]))
         else:    
-            keyboard.add(types.InlineKeyboardButton(text=Data.issue_types[i], callback_data=Data.issue_types[i]),
-                types.InlineKeyboardButton(text=Data.issue_types[i + 1], callback_data=Data.issue_types[i + 1]))
+            keyboard.add(types.InlineKeyboardButton(text=usersDict[ID].issue_types[i], callback_data=usersDict[ID].issue_types[i]),
+                types.InlineKeyboardButton(text=usersDict[ID].issue_types[i + 1], callback_data=usersDict[ID].issue_types[i + 1]))
             passed = True
     bot.send_message(ID,'Выберите тип задачи:', reply_markup= keyboard)
 
@@ -134,10 +136,11 @@ def set_assignee(ID):
     bot.send_message(ID,'Кого назначить исполнителем?',reply_markup= keyboard)
 
 def get_assignee(message):
-    Data.assigneeID_assigneName = get_assigneeID(Data.email, Data.password, message.text)
-    if len(Data.assigneeID_assigneName) > 0:
+    usersDict[message.chat.id].assigneeID_assigneName = get_assigneeID(usersDict[message.chat.id].email,
+                                                                       usersDict[message.chat.id].password, message.text)
+    if len(usersDict[message.chat.id].assigneeID_assigneName) > 0:
         bot.send_message(message.chat.id, 'Мы вас нашли!!!😎📸')
-        if Data.edit:
+        if usersDict[message.chat.id].edit:
             add_issue(message.chat.id)
         else:
             set_priority(message.chat.id)
@@ -178,7 +181,7 @@ def add_date(message):
             bot.send_message(message.chat.id,'Некорректно введена дата')
             set_date(message.chat.id)
     else:
-        Data.date = message.text
+        usersDict[message.chat.id].date = message.text
         add_issue(message.chat.id)
 
 ####################################################### МЕТОД ДОБАВЛЕНИЯ ЗАДАЧИ В ДЖИРА ##########################################################################
@@ -187,12 +190,12 @@ def add_issue(ID):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text='Да, отправить задачу в Jira', callback_data='Send'),
                  types.InlineKeyboardButton(text='Нет, выбрать редактируемые поля', callback_data='Edit'))
-    bot.send_message(ID, f'1.Тема: {Data.summary}' +
-                                    f'\n2.Описание: {read_description(ID)}' +
-                                    f'\n3.Тип: {Data.issue_type}' +
-                                    f'\n4.Исполнитель: {Data.assigneeID_assigneName[1]}' +
-                                    f'\n5.Приоритет: {priorityDict.get(Data.priority)}' + 
-                                    f'\n6.Срок выполнения: {Data.date}' + 
+    bot.send_message(ID, f'1.Тема: {usersDict[ID].summary}' +
+                                    f'\n2.Описание: {usersDict[ID].description[:-1]}' +
+                                    f'\n3.Тип: {usersDict[ID].issue_type}' +
+                                    f'\n4.Исполнитель: {usersDict[ID].assigneeID_assigneName[1]}' +
+                                    f'\n5.Приоритет: {priorityDict.get(usersDict[ID].priority)}' + 
+                                    f'\n6.Срок выполнения: {usersDict[ID].date}' + 
                                     f'\nКоличество прикреплённых файлов: {count_files(ID)}')
     bot.send_message(ID,"Данные введены верно?", reply_markup= keyboard)
 
@@ -201,12 +204,12 @@ def add_issue(ID):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
     if call.message:
-        if call.data in Data.issue_types:
+        if call.data in usersDict[call.message.chat.id].issue_types:
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
                                   text=f'Вы выбрали тип {call.data}.')
-            Data.issue_type = call.data
-            if Data.edit:
+            usersDict[call.message.chat.id].issue_type = call.data
+            if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
                 set_assignee(call.message.chat.id)
@@ -214,9 +217,9 @@ def callback_inline(call):
         elif call.data == 'assigneeMe':
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
-                                  text=f'Исполнитель: {Data.accountId_DisplayName[1]}.')
-            Data.assigneeID_assigneName = Data.accountId_DisplayName
-            if Data.edit:
+                                  text=f'Исполнитель: {usersDict[call.message.chat.id].accountId_DisplayName[1]}.')
+            usersDict[call.message.chat.id].assigneeID_assigneName = usersDict[call.message.chat.id].accountId_DisplayName
+            if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
                 set_priority(call.message.chat.id)
@@ -230,8 +233,8 @@ def callback_inline(call):
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
                                   text=f'Приоритет: {priorityDict.get(call.data)}.')
-            Data.priority = call.data
-            if Data.edit:
+            usersDict[call.message.chat.id].priority = call.data
+            if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
                 set_date(call.message.chat.id)
@@ -240,7 +243,7 @@ def callback_inline(call):
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
                                   text='Без даты')
-            Data.date = 'Без даты'
+            usersDict[call.message.chat.id].date = 'Без даты'
             add_issue(call.message.chat.id)
         elif call.data == 'date':
             bot.edit_message_text(chat_id=call.message.chat.id, 
@@ -252,8 +255,10 @@ def callback_inline(call):
             bot.edit_message_text(chat_id= call.message.chat.id,
                                   message_id=call.message.message_id, 
                                   text="Задача отправлена в Jira")
-            issue = create_issue(Data.email, Data.password, Data.summary, read_description(call.message.chat.id),
-                                 Data.issue_type, Data.priority, Data.date.split('.'), Data.assigneeID_assigneName[0])
+            issue = create_issue(usersDict[call.message.chat.id].email, usersDict[call.message.chat.id].password,
+                                 usersDict[call.message.chat.id].summary, usersDict[call.message.chat.id].description,
+                                 usersDict[call.message.chat.id].issue_type, usersDict[call.message.chat.id].priority,
+                                 usersDict[call.message.chat.id].date.split('.'), usersDict[call.message.chat.id].assigneeID_assigneName[0])
             send_attachments(call.message.chat.id,issue)
             cancel(call.message, True)
             bot.send_message(call.message.chat.id, "Задача поставлена в Jira",reply_markup= keyboard_description())
@@ -263,7 +268,7 @@ def callback_inline(call):
                                   message_id=call.message.message_id, 
                                   text="Введите номер редактируемого элемента")
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= keyboard_edit_element())
-            Data.edit = True
+            usersDict[call.message.chat.id].edit = True
 
         elif call.data == 'EditSummary':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
@@ -271,7 +276,7 @@ def callback_inline(call):
             bot.send_message(call.message.chat.id,'Введите тему задачи')
         elif call.data == 'EditDescription':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
-            delete_description(call.message.chat.id)
+            usersDict[call.message.chat.id].description = ''
             bot.register_next_step_handler(call.message, set_description)
             bot.send_message(call.message.chat.id,
                              'введите описание, после чего нажмите кнопку \n!Завершить редактирование описания',
@@ -328,14 +333,6 @@ def keyboard_description():
     markup_reply.add(item_add_issue,item_cancel_issue)
     return markup_reply
 
-def copy_description(msg, id):
-    with open("bot\\descriptions\\" + str(id) + ".txt", "a",encoding="utf-8") as file:
-        file.write(msg + "\n")
-
-def delete_description(id):   
-    with open("bot\\descriptions\\" + str(id) + ".txt", "w",encoding="utf-8") as file:    
-        file.write('')
-
 def delete_files(id):
     files = glob.glob('bot\\descriptions\\' + str(id) + '_attacments\\*')
     for f in files:
@@ -349,7 +346,7 @@ def send_attachments(ID,issue):
         filesList.append(os.path.basename(f))
         pathList.append(f)
     for i in range(len(filesList)):
-        add_attachments(Data.email, Data.password, issue, filesList[i], pathList[i])
+        add_attachments(usersDict[ID].email, usersDict[ID].password, issue, filesList[i], pathList[i])
 
 def download_file(ID,file):
     file_info = bot.get_file(file.split('.')[0])
@@ -358,19 +355,15 @@ def download_file(ID,file):
     with open(src, 'wb') as new_file:
         new_file.write(downloaded_file)
 
-def read_description(id):
-    with open("bot\\descriptions\\" + str(id) + ".txt", "r",encoding="utf-8") as file:
-        return file.read()[:-1]
-
 def cancel(message,send):
-    Data.summary = ''
-    delete_description(message.chat.id)
+    usersDict[message.chat.id].summary = ''
+    usersDict[message.chat.id].description = ''
     delete_files(message.chat.id)
-    Data.issue_type = ''
-    Data.assigneeID_assigneName = []
-    Data.priority = ''
-    Data.date = ''
-    Data.edit = False
+    usersDict[message.chat.id].issue_type = ''
+    usersDict[message.chat.id].assigneeID_assigneName = []
+    usersDict[message.chat.id].priority = ''
+    usersDict[message.chat.id].date = ''
+    usersDict[message.chat.id].edit = False
     try:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
     except:
@@ -378,4 +371,4 @@ def cancel(message,send):
     if not send:
         bot.send_message(message.chat.id, 'Задача отменена', reply_markup= keyboard_description())
 
-bot.polling(none_stop=True, interval=0,)
+bot.polling(none_stop=True)
