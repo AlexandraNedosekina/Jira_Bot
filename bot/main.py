@@ -46,6 +46,7 @@ def get_email(message):
 def data_verification(message):
     usersDict[message.chat.id].password = message.text
     try:
+        print(usersDict[message.chat.id].accountId_DisplayName)
         usersDict[message.chat.id].accountId_DisplayName = authentication(usersDict[message.chat.id].email,
                                                                           usersDict[message.chat.id].password)
     except:
@@ -63,15 +64,18 @@ def data_verification(message):
 
 @bot.message_handler(content_types=['document'])
 def attach_document(message):
-    file_info = bot.get_file(message.document.file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + message.document.file_name
-    with open(src, 'wb') as new_file:
-        new_file.write(downloaded_file)
     try:
-        usersDict[message.chat.id].description += message.caption + '\n'
+        file_info = bot.get_file(message.document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + message.document.file_name
+        with open(src, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        try:
+            usersDict[message.chat.id].description += message.caption + '\n'
+        except:
+            pass
     except:
-        pass
+        start(message)
         
 @bot.message_handler(content_types=['photo'])
 def attach_photo(message):
@@ -87,22 +91,25 @@ def attach_audio(message):
 
 @bot.message_handler(content_types=['text'])
 def set_description(message):
-    if usersDict[message.chat.id].edit:
-        if message.text == '!Завершить редактирование описания':
-            add_issue(message.chat.id)
+    try:
+        if usersDict[message.chat.id].edit:
+            if message.text == '!Завершить редактирование описания':
+                add_issue(message.chat.id)
+            else:
+                try:
+                    usersDict[message.chat.id].description += message.text + '\n'# на случай если была отправлен какойто файлик вместо текста
+                except:
+                    pass
         else:
-            try:
-                usersDict[message.chat.id].description += message.text + '\n'# на случай если была отправлен какойто файлик вместо текста
-            except:
-                pass
-    else:
-        if message.text == '!Поставить задачу':
-            bot.register_next_step_handler(message, set_summary)
-            bot.send_message(message.chat.id,'Введите тему задачи', reply_markup= keyboard_Cancel_issue())
-        elif message.text == '!Отменить постановку задачи':
-            cancel(message,False)
-        else:
-            usersDict[message.chat.id].description += message.text + '\n'
+            if message.text == '!Поставить задачу':
+                bot.register_next_step_handler(message, set_summary)
+                bot.send_message(message.chat.id,'Введите тему задачи', reply_markup= keyboard_Cancel_issue())
+            elif message.text == '!Отменить постановку задачи':
+                cancel(message,False)
+            else:
+                usersDict[message.chat.id].description += message.text + '\n'
+    except:
+        start(message)
 
 ################################################### ЗАПОЛНЕНИЕ ЗАГОЛОВКА ###########################################################
 
@@ -356,15 +363,18 @@ def send_attachments(ID,issue):
         add_attachments(usersDict[ID].email, usersDict[ID].password, issue, filesList[i], pathList[i])
 
 def download_file(message,file):
-    file_info = bot.get_file(file.split('.')[0])
-    downloaded_file = bot.download_file(file_info.file_path)
-    src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + file
-    with open(src, 'wb') as new_file:
-        new_file.write(downloaded_file)
     try:
-        usersDict[message.chat.id].description += message.caption + '\n'
+        file_info = bot.get_file(file.split('.')[0])
+        downloaded_file = bot.download_file(file_info.file_path)
+        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + file
+        with open(src, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        try:
+            usersDict[message.chat.id].description += message.caption + '\n'
+        except:
+            pass
     except:
-        pass
+        start(message)
 
 def cancel(message,send):
     usersDict[message.chat.id].summary = ''
