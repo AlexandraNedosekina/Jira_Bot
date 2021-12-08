@@ -38,18 +38,12 @@ def get_assigneeID(email, apitoken, name):
     return []
 
 def create_issue(email, apitoken,summary, description, issuetype, priority, dateList, assigneeID):
-    if len(dateList) == 3:
-        duedate = dateList[2] + "-" + dateList[1] + "-" + dateList[0]
-
     url="https://dimamolodec.atlassian.net/rest/api/2/issue"
     headers={
     "Accept": "application/json",
     "Content-Type": "application/json"
     }
-    if len(dateList) == 3:
-        payload=json.dumps({
-            "fields": {
-            "project":
+    issue = {"project":
             {
                 "key": "TJ"
             },
@@ -61,34 +55,14 @@ def create_issue(email, apitoken,summary, description, issuetype, priority, date
             "priority": {
                 "id": priority 
             },
-            "duedate": duedate,#год-месяц-день
             "assignee": {
                 "id": assigneeID
             }
-        }
-        }
-        )
-    else:
-        payload=json.dumps({
-            "fields": {
-            "project":
-            {
-                "key": "TJ"
-            },
-            "summary": summary,
-            "description": description,
-            "issuetype": {
-                "name": issuetype
-            },
-            "priority": {
-                "id": priority  
-            },
-            "assignee": {
-                "id": assigneeID
             }
-        }
-        }
-        )
+    if len(dateList) == 3:
+        duedate = dateList[2] + "-" + dateList[1] + "-" + dateList[0]
+        issue["duedate"] = duedate
+    payload=json.dumps({"fields": issue})
     response=requests.post(url,headers=headers,data= payload,auth=HTTPBasicAuth(email, apitoken))
     data = response.json()
     return(data['key'])
