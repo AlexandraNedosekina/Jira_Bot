@@ -68,18 +68,22 @@ def attach_document(message):
     src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + message.document.file_name
     with open(src, 'wb') as new_file:
         new_file.write(downloaded_file)
+    try:
+        usersDict[message.chat.id].description += message.caption + '\n'
+    except:
+        pass
         
 @bot.message_handler(content_types=['photo'])
 def attach_photo(message):
-    download_file(message.chat.id, message.photo[len(message.photo)-1].file_id + '.jpg')
+    download_file(message, message.photo[len(message.photo)-1].file_id + '.jpg')
 
 @bot.message_handler(content_types=['video'])
 def attach_video(message):
-    download_file(message.chat.id, message.video.file_id + '.mp4')
+    download_file(message, message.video.file_id + '.mp4')
 
 @bot.message_handler(content_types=['audio'])
 def attach_audio(message):
-    download_file(message.chat.id, message.audio.file_id + '.mp3')
+    download_file(message, message.audio.file_id + '.mp3')
 
 @bot.message_handler(content_types=['text'])
 def set_description(message):
@@ -124,7 +128,7 @@ def set_issue_type(ID):
     if len(issuetypes) % 2 == 1:
         knops.append([types.InlineKeyboardButton(text=issuetypes[len(issuetypes) - 1], callback_data=issuetypes[len(issuetypes) - 1])])
     keyboard = types.InlineKeyboardMarkup(knops)
-    
+
     bot.send_message(ID,'Выберите тип задачи:', reply_markup= keyboard)
 
 ################################################### НАЗНАЧЕНИЕ ИСПОЛНИТЕЛЯ ########################################################
@@ -266,7 +270,7 @@ def callback_inline(call):
         elif call.data == 'Edit':
             bot.edit_message_text(chat_id= call.message.chat.id, 
                                   message_id=call.message.message_id, 
-                                  text="Введите номер редактируемого элемента")
+                                  text="Ввыберите редактируемый элемент")
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= keyboard_edit_element())
             usersDict[call.message.chat.id].edit = True
 
@@ -348,12 +352,16 @@ def send_attachments(ID,issue):
     for i in range(len(filesList)):
         add_attachments(usersDict[ID].email, usersDict[ID].password, issue, filesList[i], pathList[i])
 
-def download_file(ID,file):
+def download_file(message,file):
     file_info = bot.get_file(file.split('.')[0])
     downloaded_file = bot.download_file(file_info.file_path)
-    src = 'bot\descriptions\\' + str(ID) + '_attacments\\' + file
+    src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + file
     with open(src, 'wb') as new_file:
         new_file.write(downloaded_file)
+    try:
+        usersDict[message.chat.id].description += message.caption + '\n'
+    except:
+        pass
 
 def cancel(message,send):
     usersDict[message.chat.id].summary = ''
