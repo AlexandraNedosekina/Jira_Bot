@@ -115,16 +115,16 @@ def set_summary(message):
 def set_issue_type(ID):
     keyboard = types.InlineKeyboardMarkup()
     usersDict[ID].issue_types = get_issue_types(usersDict[ID].email,usersDict[ID].password)
-    passed = False
-    for i in range(len(usersDict[ID].issue_types)):
-        if passed:
-            passed= False
-        elif len(usersDict[ID].issue_types) - i == 1:
-            keyboard.add(types.InlineKeyboardButton(text=usersDict[ID].issue_types[i], callback_data=usersDict[ID].issue_types[i]))
-        else:    
-            keyboard.add(types.InlineKeyboardButton(text=usersDict[ID].issue_types[i], callback_data=usersDict[ID].issue_types[i]),
-                types.InlineKeyboardButton(text=usersDict[ID].issue_types[i + 1], callback_data=usersDict[ID].issue_types[i + 1]))
-            passed = True
+
+    issuetypes = usersDict[ID].issue_types
+    knops=[[]]
+    for i in range(len(issuetypes) // 2):
+        knops.append([types.InlineKeyboardButton(text=issuetypes[2*i], callback_data=issuetypes[2*i]),
+                      types.InlineKeyboardButton(text=issuetypes[2*i + 1], callback_data=issuetypes[2*i + 1])])
+    if len(issuetypes) % 2 == 1:
+        knops.append([types.InlineKeyboardButton(text=issuetypes[len(issuetypes) - 1], callback_data=issuetypes[len(issuetypes) - 1])])
+    keyboard = types.InlineKeyboardMarkup(knops)
+    
     bot.send_message(ID,'Выберите тип задачи:', reply_markup= keyboard)
 
 ################################################### НАЗНАЧЕНИЕ ИСПОЛНИТЕЛЯ ########################################################
