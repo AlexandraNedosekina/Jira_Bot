@@ -91,7 +91,10 @@ def set_description(message):
         if message.text == '!Завершить редактирование описания':
             add_issue(message.chat.id)
         else:
-            usersDict[message.chat.id].description += message.text + '\n'
+            try:
+                usersDict[message.chat.id].description += message.text + '\n'# на случай если была отправлен какойто файлик вместо текста
+            except:
+                pass
     else:
         if message.text == '!Поставить задачу':
             bot.register_next_step_handler(message, set_summary)
