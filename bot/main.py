@@ -23,9 +23,12 @@ class Data():
     accountId_DisplayName = []
     summary = ''
     issue_type = ''
+    hint = {}
     assigneeID_assigneName = []
     priority = ''
     date = ''
+    attachCount = 0
+    attachName = {}
 
     issue_types = []
     edit = False
@@ -46,7 +49,6 @@ def get_email(message):
 def data_verification(message):
     usersDict[message.chat.id].password = message.text
     try:
-        print(usersDict[message.chat.id].accountId_DisplayName)
         usersDict[message.chat.id].accountId_DisplayName = authentication(usersDict[message.chat.id].email,
                                                                           usersDict[message.chat.id].password)
     except:
@@ -64,18 +66,24 @@ def data_verification(message):
 
 @bot.message_handler(content_types=['document'])
 def attach_document(message):
-    try:
-        file_info = bot.get_file(message.document.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + message.document.file_name
-        with open(src, 'wb') as new_file:
-            new_file.write(downloaded_file)
+    #try:
         try:
-            usersDict[message.chat.id].description += message.caption + '\n'
+            usersDict[message.chat.id].description += message.caption + ' '
         except:
             pass
-    except:
-        start(message)
+        usersDict[message.chat.id].attachCount += 1
+        i = str(usersDict[message.chat.id].attachCount)
+        usersDict[message.chat.id].description += '(' + i + ')\n'
+        name = message.document.file_name.split('.')
+        file_info = bot.get_file(message.document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + i + '.' + name[len(name) - 1]
+        usersDict[message.chat.id].attachName[int(i)] = i + '.' + name[len(name) - 1]
+        with open(src, 'wb') as new_file:
+            new_file.write(downloaded_file)
+        
+    #except:
+    #x    start(message)
         
 @bot.message_handler(content_types=['photo'])
 def attach_photo(message):
@@ -116,13 +124,15 @@ def set_description(message):
 def set_summary(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
-    else:
+    elif len(message.text) <= 255 and len(message.text.splitlines()) == 1:
         usersDict[message.chat.id].summary = message.text
-        usersDict[message.chat.id].at_me = False
         if usersDict[message.chat.id].edit:
             add_issue(message.chat.id)
         else:
             set_issue_type(message.chat.id)
+    else:
+        bot.register_next_step_handler(message, set_summary)
+        bot.send_message(message.chat.id, 'Данные введены неверно.\nВведите тему в одну строку и не больше 255 символов!')
 
 ################################################## ЗАПОЛНЕНИЕ ТИПА ЗАДАЧИ ####################################################################
 
@@ -143,17 +153,25 @@ def set_issue_type(ID):
 
 ################################################### НАЗНАЧЕНИЕ ИСПОЛНИТЕЛЯ ########################################################
 
-def set_assignee(ID):
+def set_assignee(message):
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton(text='меня', callback_data='assigneeMe'),
-                 types.InlineKeyboardButton(text='Кого-то другого', callback_data='assignee'))
-    bot.send_message(ID,'Кого назначить исполнителем?',reply_markup= keyboard)
+    keyboard.add(types.InlineKeyboardButton(text='На меня', callback_data='assignee'))
+    bot.register_next_step_handler(message,get_assignee)
+    bot.send_message(message.chat.id,'Введите Исполнителя.',reply_markup= keyboard)
 
 def get_assignee(message):
-    usersDict[message.chat.id].assigneeID_assigneName = get_assigneeID(usersDict[message.chat.id].email,
-                                                                       usersDict[message.chat.id].password, message.text)
-    if len(usersDict[message.chat.id].assigneeID_assigneName) > 0:
-        bot.send_message(message.chat.id, 'Мы вас нашли!!!😎📸')
+    bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
+    usersDict[message.chat.id].hint = get_assigneeID(usersDict[message.chat.id].email, usersDict[message.chat.id].password, message.text)
+    if len(usersDict[message.chat.id].hint.keys()) > 1:
+        keyboard = types.InlineKeyboardMarkup()
+        keys = list(usersDict[message.chat.id].hint.keys())
+        for i in range(len(keys)):
+            keyboard.add(types.InlineKeyboardButton(text=keys[i], callback_data=keys[i]))
+        bot.send_message(message.chat.id,'Выберите Исполнителя.',reply_markup= keyboard)
+    elif len(usersDict[message.chat.id].hint.keys()) == 1:
+        assigneeItems = list(list(usersDict[message.chat.id].hint.items())[0])
+        usersDict[message.chat.id].assigneeID_assigneName = [assigneeItems[1], assigneeItems[0]]
+        bot.send_message(message.chat.id, f'Исполнитель: {usersDict[message.chat.id].assigneeID_assigneName[1]}.')
         if usersDict[message.chat.id].edit:
             add_issue(message.chat.id)
         else:
@@ -162,8 +180,8 @@ def get_assignee(message):
         if message.text == '!Отменить постановку задачи':
             cancel(message,False)
         else:
-            bot.send_message(message.chat.id, 'Такой пользователь не найден😞')
-            set_assignee(message.chat.id)
+            bot.send_message(message.chat.id, 'Такой пользователь не найден!')
+            set_assignee(message)
 
 ################################################## МЕТОД ДЛЯ УСТАНОВКИ ПРИОРИТЕТА ЗАДАЧИ #################################################
 
@@ -178,11 +196,11 @@ def set_priority(ID):
 
 ###################################################### МЕТОД ДЛЯ УСТАНОВКИ ДАТЫ ##########################################################
 
-def set_date(ID):
+def set_date(message):
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton(text="Пропустить", callback_data="SkipDate"),
-                 types.InlineKeyboardButton(text="Добавить дату",callback_data="date"))
-    bot.send_message(ID,'Устанавливать дату выполнения?',reply_markup= keyboard)
+    keyboard.add(types.InlineKeyboardButton(text="Пропустить", callback_data="SkipDate"))
+    bot.register_next_step_handler(message, add_date)
+    bot.send_message(message.chat.id,'Введите дату выполнения в формате ДД.ММ.ГГГГ:',reply_markup= keyboard)
 
 def add_date(message):
     try:
@@ -193,7 +211,7 @@ def add_date(message):
             cancel(message,False)
         else:
             bot.send_message(message.chat.id,'Некорректно введена дата')
-            set_date(message.chat.id)
+            set_date(message)
     else:
         usersDict[message.chat.id].date = message.text
         add_issue(message.chat.id)
@@ -210,7 +228,7 @@ def add_issue(ID):
                                     f'\n4.Исполнитель: {usersDict[ID].assigneeID_assigneName[1]}' +
                                     f'\n5.Приоритет: {priorityDict.get(usersDict[ID].priority)}' + 
                                     f'\n6.Срок выполнения: {usersDict[ID].date}' + 
-                                    f'\nКоличество прикреплённых файлов: {count_files(ID)}')
+                                    f'\nКоличество прикреплённых файлов: {str(usersDict[ID].attachCount)}')
     bot.send_message(ID,"Данные введены верно?", reply_markup= keyboard)
 
 ################################################### МЕТОД ДЛЯ ОБРАБОТКИ CALLBACK ДАННЫХ #########################################
@@ -226,22 +244,28 @@ def callback_inline(call):
             if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
-                set_assignee(call.message.chat.id)
+                set_assignee(call.message)
 
-        elif call.data == 'assigneeMe':
+        elif call.data == 'assignee':
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
                                   text=f'Исполнитель: {usersDict[call.message.chat.id].accountId_DisplayName[1]}.')
             usersDict[call.message.chat.id].assigneeID_assigneName = usersDict[call.message.chat.id].accountId_DisplayName
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
                 set_priority(call.message.chat.id)
-        elif call.data == 'assignee':
+
+        elif call.data in usersDict[call.message.chat.id].hint.keys():
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
-                                  text='Введите полное имя исполнителя.')
-            bot.register_next_step_handler(call.message,get_assignee)
+                                  text=f'Исполнитель: {call.data}.')
+            usersDict[call.message.chat.id].assigneeID_assigneName = [usersDict[call.message.chat.id].hint[call.data], call.data]
+            if usersDict[call.message.chat.id].edit:
+                add_issue(call.message.chat.id)
+            else:
+                set_priority(call.message.chat.id)
 
         elif call.data.isnumeric():
             bot.edit_message_text(chat_id=call.message.chat.id, 
@@ -251,19 +275,15 @@ def callback_inline(call):
             if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
-                set_date(call.message.chat.id)
+                set_date(call.message)
 
         elif call.data == 'SkipDate':
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
                                   text='Без даты')
             usersDict[call.message.chat.id].date = 'Без даты'
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             add_issue(call.message.chat.id)
-        elif call.data == 'date':
-            bot.edit_message_text(chat_id=call.message.chat.id, 
-                                  message_id=call.message.message_id, 
-                                  text='Введите дату выполнения в формате ДД.ММ.ГГГГ')
-            bot.register_next_step_handler(call.message,add_date)
 
         elif call.data == 'Send':
             bot.edit_message_text(chat_id= call.message.chat.id,
@@ -280,7 +300,7 @@ def callback_inline(call):
         elif call.data == 'Edit':
             bot.edit_message_text(chat_id= call.message.chat.id, 
                                   message_id=call.message.message_id, 
-                                  text="Ввыберите редактируемый элемент")
+                                  text="Выберите редактируемый элемент")
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= keyboard_edit_element())
             usersDict[call.message.chat.id].edit = True
 
@@ -300,23 +320,18 @@ def callback_inline(call):
             set_issue_type(call.message.chat.id)
         elif call.data == 'EditAssignee':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
-            set_assignee(call.message.chat.id)
+            set_assignee(call.message)
         elif call.data == 'EditPriority':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             set_priority(call.message.chat.id)
         elif call.data == 'EditDate':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
-            set_date(call.message.chat.id)
+            set_date(call.message)
         elif call.data == 'back':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             add_issue(call.message.chat.id)
             
 ######################################################### ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ########################################################
-
-def count_files(id):
-    result = len(glob.glob('bot\\descriptions\\' + str(id) + '_attacments\\*'))
-    return str(result)
-
 
 def keyboard_Cancel_issue():
     markup_reply = types.ReplyKeyboardMarkup(one_time_keyboard = False, resize_keyboard = True)
@@ -353,26 +368,25 @@ def delete_files(id):
         os.remove(f)
 
 def send_attachments(ID,issue):
-    filesList=[]
-    pathList=[]
-    files = glob.glob('bot\\descriptions\\' + str(ID) + '_attacments\\*')
-    for f in files:
-        filesList.append(os.path.basename(f))
-        pathList.append(f)
-    for i in range(len(filesList)):
-        add_attachments(usersDict[ID].email, usersDict[ID].password, issue, filesList[i], pathList[i])
+    for key in range(usersDict[ID].attachCount, 0, -1):
+        add_attachments(usersDict[ID].email, usersDict[ID].password, issue, usersDict[ID].attachName[key],
+                        'bot\\descriptions\\' + str(ID) + '_attacments\\' + usersDict[ID].attachName[key])
 
 def download_file(message,file):
     try:
-        file_info = bot.get_file(file.split('.')[0])
-        downloaded_file = bot.download_file(file_info.file_path)
-        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + file
-        with open(src, 'wb') as new_file:
-            new_file.write(downloaded_file)
         try:
-            usersDict[message.chat.id].description += message.caption + '\n'
+            usersDict[message.chat.id].description += message.caption + ' '
         except:
             pass
+        usersDict[message.chat.id].attachCount += 1
+        i = str(usersDict[message.chat.id].attachCount)
+        usersDict[message.chat.id].description += '(' + i + ')\n'
+        file_info = bot.get_file(file.split('.')[0])
+        downloaded_file = bot.download_file(file_info.file_path)
+        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + i + '.' + file.split('.')[1]
+        usersDict[message.chat.id].attachName[int(i)] = i + '.' + file.split('.')[1]
+        with open(src, 'wb') as new_file:
+            new_file.write(downloaded_file)
     except:
         start(message)
 
@@ -385,6 +399,9 @@ def cancel(message,send):
     usersDict[message.chat.id].priority = ''
     usersDict[message.chat.id].date = ''
     usersDict[message.chat.id].edit = False
+    usersDict[message.chat.id].attachCount = 0
+    usersDict[message.chat.id].hint = {}
+    usersDict[message.chat.id].attachName = {}
     try:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
     except:

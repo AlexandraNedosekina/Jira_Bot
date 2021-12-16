@@ -20,11 +20,11 @@ def get_issue_types(email, apitoken):
     data = response.json()
     result=[]
     for types in data["issueTypes"]:
-        if not types['subtask']:
+        if types['hierarchyLevel'] == 0:
             result.append(types["name"])
     return result
 
-def get_assigneeID(email, apitoken, name):
+def get_assigneeID(email, apitoken, partname):
     url="https://dimamolodec.atlassian.net/rest/api/2/users/search"
     headers={
         "Accept": "application/json",
@@ -32,10 +32,16 @@ def get_assigneeID(email, apitoken, name):
     }
     response=requests.get(url,headers=headers,auth=(email, apitoken))
     data = response.json()
+    allusers={}
+    needusers={}
     for users in data:
-        if users["displayName"] == name:
-            return[users["accountId"], users["displayName"]]
-    return []
+        if users['accountType'] == 'atlassian': #and users['active'] == True:
+            allusers[users['displayName']] = users['accountId']
+    for fullname in list(allusers.keys()):
+        for name in fullname.split(' '):
+            if name.startswith(partname):
+                needusers[fullname] = allusers[fullname]
+    return needusers
 
 def create_issue(email, apitoken,summary, description, issuetype, priority, dateList, assigneeID):
     url="https://dimamolodec.atlassian.net/rest/api/2/issue"
