@@ -124,23 +124,23 @@ def set_description(message):
 def set_summary(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
-    elif len(message.text) <= 255 and len(message.text.splitlines()) == 1:
+    elif message.content_type == 'text' and len(message.text) <= 255 and len(message.text.splitlines()) == 1:
         usersDict[message.chat.id].summary = message.text
         if usersDict[message.chat.id].edit:
             add_issue(message.chat.id)
         else:
-            set_issue_type(message.chat.id)
+            set_issue_type(message)
     else:
         bot.register_next_step_handler(message, set_summary)
         bot.send_message(message.chat.id, 'Данные введены неверно.\nВведите тему в одну строку и не больше 255 символов!')
 
 ################################################## ЗАПОЛНЕНИЕ ТИПА ЗАДАЧИ ####################################################################
 
-def set_issue_type(ID):
+def set_issue_type(message):
     keyboard = types.InlineKeyboardMarkup()
-    usersDict[ID].issue_types = get_issue_types(usersDict[ID].email,usersDict[ID].password)
+    usersDict[message.chat.id].issue_types = get_issue_types(usersDict[message.chat.id].email,usersDict[message.chat.id].password)
 
-    issuetypes = usersDict[ID].issue_types
+    issuetypes = usersDict[message.chat.id].issue_types
     knops=[[]]
     for i in range(len(issuetypes) // 2):
         knops.append([types.InlineKeyboardButton(text=issuetypes[2*i], callback_data=issuetypes[2*i]),
@@ -149,7 +149,17 @@ def set_issue_type(ID):
         knops.append([types.InlineKeyboardButton(text=issuetypes[len(issuetypes) - 1], callback_data=issuetypes[len(issuetypes) - 1])])
     keyboard = types.InlineKeyboardMarkup(knops)
 
-    bot.send_message(ID,'Выберите тип задачи:', reply_markup= keyboard)
+    bot.register_next_step_handler(message, add_issue_type)
+    bot.send_message(message.chat.id,'Выберите тип задачи:', reply_markup= keyboard)
+
+def add_issue_type(message):
+    if message.text == '!Отменить постановку задачи':
+        cancel(message,False)
+    else:
+        bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
+        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным типом задачи')
+        set_issue_type(message)
+        
 
 ################################################### НАЗНАЧЕНИЕ ИСПОЛНИТЕЛЯ ########################################################
 
@@ -247,6 +257,7 @@ def callback_inline(call):
                                   message_id=call.message.message_id, 
                                   text=f'Вы выбрали тип {call.data}.')
             usersDict[call.message.chat.id].issue_type = call.data
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
@@ -323,7 +334,7 @@ def callback_inline(call):
                              reply_markup= keyboard_edit_description())
         elif call.data == 'EditTypeIssue':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
-            set_issue_type(call.message.chat.id)
+            set_issue_type(call.message)
         elif call.data == 'EditAssignee':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             set_assignee(call.message)
@@ -346,7 +357,7 @@ def cancel_issue(message):
         bot.register_next_step_handler(message,cancel_issue)
 
 def keyboard_Cancel_issue():
-    markup_reply = types.ReplyKeyboardMarkup(one_time_keyboard = False, resize_keyboard = True)
+    markup_reply = types.ReplyKeyboardMarkup(one_time_keyboard = True, resize_keyboard = True,)
     markup_reply.add(types.KeyboardButton(text = '!Отменить постановку задачи'))
     return markup_reply
 
