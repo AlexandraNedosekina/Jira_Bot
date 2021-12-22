@@ -66,7 +66,7 @@ def data_verification(message):
 
 @bot.message_handler(commands= 'help',content_types= 'text')
 def help(message):
-    bot.send_message(message.chat.id, "/help - посмотреть хелп\n/start - изменить почту и пароль")
+    bot.send_message(message.chat.id, "/help - посмотреть хелп.\n/start - изменить почту и пароль.")
 
 ############################################### ЗАПОЛНЕНИЕ ОПИСАНИЯ И ДОБАВЛЕНИЕ ВЛОЖЕНИЙ #########################################################
 
@@ -119,7 +119,7 @@ def set_description(message):
         else:
             if message.text == '!Поставить задачу':
                 bot.register_next_step_handler(message, set_summary)
-                bot.send_message(message.chat.id,'Введите тему задачи', reply_markup= keyboard_Cancel_issue())
+                bot.send_message(message.chat.id,'Введите тему задачи:', reply_markup= keyboard_Cancel_issue())
             elif message.text == '!Отменить постановку задачи':
                 cancel(message,False)
             else:
@@ -140,7 +140,7 @@ def set_summary(message):
             set_issue_type(message)
     else:
         bot.register_next_step_handler(message, set_summary)
-        bot.send_message(message.chat.id, 'Данные введены неверно.\nВведите тему в одну строку и не больше 255 символов!')
+        bot.send_message(message.chat.id, 'Данные введены неверно.\nВведите тему в одну строку и не больше 255 символов.')
 
 ################################################## ЗАПОЛНЕНИЕ ТИПА ЗАДАЧИ ####################################################################
 
@@ -165,7 +165,7 @@ def message_in_issue_type(message):
         cancel(message,False)
     else:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
-        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным типом задачи')
+        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным типом задачи.')
         set_issue_type(message)
         
 
@@ -175,7 +175,7 @@ def set_assignee(message):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text='На меня', callback_data='assignee'))
     bot.register_next_step_handler(message,get_assignee)
-    bot.send_message(message.chat.id,'Введите Исполнителя.',reply_markup= keyboard)
+    bot.send_message(message.chat.id,'Введите Исполнителя:',reply_markup= keyboard)
 
 def get_assignee(message):
     bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
@@ -203,7 +203,7 @@ def get_assignee(message):
                 bot.send_message(message.chat.id, 'Такой пользователь не найден!')
                 set_assignee(message)
     else:
-        bot.send_message(message.chat.id, 'Неверный формат сообщения')
+        bot.send_message(message.chat.id, 'Неверный формат сообщения.')
         set_assignee(message)
 ################################################## МЕТОД ДЛЯ УСТАНОВКИ ПРИОРИТЕТА ЗАДАЧИ #################################################
 
@@ -222,7 +222,7 @@ def message_in_priority(message):
         cancel(message,False)
     else:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
-        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным приоритетом')
+        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным приоритетом.')
         set_priority(message)
 
 ###################################################### МЕТОД ДЛЯ УСТАНОВКИ ДАТЫ ##########################################################
@@ -249,13 +249,13 @@ def add_date(message):
             if message.text == '!Отменить постановку задачи':
                 cancel(message,False)
             else:
-                bot.send_message(message.chat.id,'Дата введена некорректно')
+                bot.send_message(message.chat.id,'Дата введена некорректно.')
                 set_date(message)
         else:
             usersDict[message.chat.id].date = message.text + '.' + str(year)
             add_issue(message)
     else:
-        bot.send_message(message.chat.id,'Дата введена некорректно')
+        bot.send_message(message.chat.id,'Дата введена некорректно.')
         set_date(message)
 
 ####################################################### МЕТОД ДОБАВЛЕНИЯ ЗАДАЧИ В ДЖИРА ##########################################################################
@@ -343,19 +343,19 @@ def callback_inline(call):
         elif call.data == 'Send':
             bot.edit_message_text(chat_id= call.message.chat.id,
                                   message_id=call.message.message_id, 
-                                  text="Задача отправлена в Jira")
+                                  text="Задача отправлена в Jira.")
             issue = create_issue(usersDict[call.message.chat.id].email, usersDict[call.message.chat.id].password,
                                  usersDict[call.message.chat.id].summary, usersDict[call.message.chat.id].description,
                                  usersDict[call.message.chat.id].issue_type, usersDict[call.message.chat.id].priority,
                                  usersDict[call.message.chat.id].date.split('.'), usersDict[call.message.chat.id].assigneeID_assigneName[0])
             send_attachments(call.message.chat.id,issue)
             cancel(call.message, True)
-            bot.send_message(call.message.chat.id, "Задача поставлена в Jira",reply_markup= keyboard_description())
+            bot.send_message(call.message.chat.id, "Задача поставлена в Jira.",reply_markup= keyboard_description())
 
         elif call.data == 'Edit':
             bot.edit_message_text(chat_id= call.message.chat.id, 
                                   message_id=call.message.message_id, 
-                                  text="Выберите редактируемый элемент")
+                                  text="Выберите редактируемый поле:")
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= keyboard_edit_element())
             usersDict[call.message.chat.id].edit = True
 
@@ -363,7 +363,7 @@ def callback_inline(call):
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             bot.register_next_step_handler(call.message, set_summary)
-            bot.send_message(call.message.chat.id,'Введите тему задачи')
+            bot.send_message(call.message.chat.id,'Введите тему задачи:')
         elif call.data == 'EditDescription':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             usersDict[call.message.chat.id].description = ''
@@ -371,7 +371,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].attachCount = 0
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             bot.send_message(call.message.chat.id,
-                             'введите описание, после чего нажмите кнопку \n!Завершить редактирование описания',
+                             'введите описание, после чего нажмите кнопку \n!Завершить редактирование описания.',
                              reply_markup= keyboard_edit_description())
         elif call.data == 'EditTypeIssue':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
@@ -471,6 +471,6 @@ def cancel(message,send):
     except:
         pass
     if not send:
-        bot.send_message(message.chat.id, 'Задача отменена', reply_markup= keyboard_description())
+        bot.send_message(message.chat.id, 'Задача отменена.', reply_markup= keyboard_description())
 
 bot.polling(none_stop=True)
