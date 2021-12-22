@@ -148,7 +148,7 @@ def set_issue_type(ID):
     if len(issuetypes) % 2 == 1:
         knops.append([types.InlineKeyboardButton(text=issuetypes[len(issuetypes) - 1], callback_data=issuetypes[len(issuetypes) - 1])])
     keyboard = types.InlineKeyboardMarkup(knops)
-
+    
     bot.send_message(ID,'Выберите тип задачи:', reply_markup= keyboard)
 
 ################################################### НАЗНАЧЕНИЕ ИСПОЛНИТЕЛЯ ########################################################
@@ -332,6 +332,12 @@ def callback_inline(call):
             add_issue(call.message.chat.id)
             
 ######################################################### ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ########################################################
+
+def cancel_issue(message):
+    if message.text == '!Отменить постановку задачи':
+        cancel(message,False)
+    else:
+        bot.register_next_step_handler(message,cancel_issue)
 
 def keyboard_Cancel_issue():
     markup_reply = types.ReplyKeyboardMarkup(one_time_keyboard = False, resize_keyboard = True)
