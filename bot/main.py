@@ -149,10 +149,10 @@ def set_issue_type(message):
         knops.append([types.InlineKeyboardButton(text=issuetypes[len(issuetypes) - 1], callback_data=issuetypes[len(issuetypes) - 1])])
     keyboard = types.InlineKeyboardMarkup(knops)
 
-    bot.register_next_step_handler(message, add_issue_type)
+    bot.register_next_step_handler(message, message_in_issue_type)
     bot.send_message(message.chat.id,'Выберите тип задачи:', reply_markup= keyboard)
 
-def add_issue_type(message):
+def message_in_issue_type(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
     else:
@@ -171,38 +171,50 @@ def set_assignee(message):
 
 def get_assignee(message):
     bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
-    usersDict[message.chat.id].hint = get_assigneeID(usersDict[message.chat.id].email, usersDict[message.chat.id].password, message.text)
-    if len(usersDict[message.chat.id].hint.keys()) > 1:
-        keyboard = types.InlineKeyboardMarkup()
-        keys = list(usersDict[message.chat.id].hint.keys())
-        for i in range(len(keys)):
-            keyboard.add(types.InlineKeyboardButton(text=keys[i], callback_data=keys[i]))
-        bot.send_message(message.chat.id,'Выберите Исполнителя.',reply_markup= keyboard)
-    elif len(usersDict[message.chat.id].hint.keys()) == 1:
-        assigneeItems = list(list(usersDict[message.chat.id].hint.items())[0])
-        usersDict[message.chat.id].assigneeID_assigneName = [assigneeItems[1], assigneeItems[0]]
-        bot.send_message(message.chat.id, f'Исполнитель: {usersDict[message.chat.id].assigneeID_assigneName[1]}.')
-        if usersDict[message.chat.id].edit:
-            add_issue(message.chat.id)
+    if message.content_type == 'text':
+        usersDict[message.chat.id].hint = get_assigneeID(usersDict[message.chat.id].email, usersDict[message.chat.id].password, message.text)
+        if len(usersDict[message.chat.id].hint.keys()) > 1:
+            keyboard = types.InlineKeyboardMarkup()
+            keys = list(usersDict[message.chat.id].hint.keys())
+            for i in range(len(keys)):
+                keyboard.add(types.InlineKeyboardButton(text=keys[i], callback_data=keys[i]))
+            bot.send_message(message.chat.id,'Выберите Исполнителя.',reply_markup= keyboard)
+        elif len(usersDict[message.chat.id].hint.keys()) == 1:
+            assigneeItems = list(list(usersDict[message.chat.id].hint.items())[0])
+            usersDict[message.chat.id].assigneeID_assigneName = [assigneeItems[1], assigneeItems[0]]
+            bot.send_message(message.chat.id, f'Исполнитель: {usersDict[message.chat.id].assigneeID_assigneName[1]}.')
+            if usersDict[message.chat.id].edit:
+                add_issue(message.chat.id)
+            else:
+                set_priority(message)
         else:
-            set_priority(message.chat.id)
+            if message.text == '!Отменить постановку задачи':
+                cancel(message,False)
+            else:
+                bot.send_message(message.chat.id, 'Такой пользователь не найден!')
+                set_assignee(message)
     else:
-        if message.text == '!Отменить постановку задачи':
-            cancel(message,False)
-        else:
-            bot.send_message(message.chat.id, 'Такой пользователь не найден!')
-            set_assignee(message)
-
+        bot.send_message(message.chat.id, 'Неверный формат сообщения')
+        set_assignee(message)
 ################################################## МЕТОД ДЛЯ УСТАНОВКИ ПРИОРИТЕТА ЗАДАЧИ #################################################
 
-def set_priority(ID):
+def set_priority(message):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text="Lowest", callback_data='5'),
                  types.InlineKeyboardButton(text="Low", callback_data='4'),
                  types.InlineKeyboardButton(text="Medium", callback_data='3'),
                  types.InlineKeyboardButton(text="High", callback_data='2'),
                  types.InlineKeyboardButton(text="Highest", callback_data='1'))
-    bot.send_message(ID,'Выберите приоритет: ',reply_markup= keyboard)
+    bot.register_next_step_handler(message, message_in_priority)
+    bot.send_message(message.chat.id,'Выберите приоритет: ',reply_markup= keyboard)
+
+def message_in_priority(message):
+    if message.text == '!Отменить постановку задачи':
+        cancel(message,False)
+    else:
+        bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
+        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным приоритетом')
+        set_priority(message)
 
 ###################################################### МЕТОД ДЛЯ УСТАНОВКИ ДАТЫ ##########################################################
 
@@ -213,6 +225,7 @@ def set_date(message):
     bot.send_message(message.chat.id,'Введите дату выполнения в формате ДД.ММ:',reply_markup= keyboard)
 
 def add_date(message):
+    bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
     datemsg = message.text.split('.')
     if len(datemsg) != 2 or len(datemsg[0]) != 2 or len(datemsg[1]) != 2:
         datemsg = ['F']
@@ -272,7 +285,7 @@ def callback_inline(call):
             if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
-                set_priority(call.message.chat.id)
+                set_priority(call.message)
 
         elif call.data in usersDict[call.message.chat.id].hint.keys():
             bot.edit_message_text(chat_id=call.message.chat.id, 
@@ -282,13 +295,14 @@ def callback_inline(call):
             if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
-                set_priority(call.message.chat.id)
+                set_priority(call.message)
 
         elif call.data.isnumeric():
             bot.edit_message_text(chat_id=call.message.chat.id, 
                                   message_id=call.message.message_id, 
                                   text=f'Приоритет: {priorityDict.get(call.data)}.')
             usersDict[call.message.chat.id].priority = call.data
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
                 add_issue(call.message.chat.id)
             else:
@@ -340,7 +354,7 @@ def callback_inline(call):
             set_assignee(call.message)
         elif call.data == 'EditPriority':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
-            set_priority(call.message.chat.id)
+            set_priority(call.message)
         elif call.data == 'EditDate':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             set_date(call.message)
