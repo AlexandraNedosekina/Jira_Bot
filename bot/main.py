@@ -62,6 +62,12 @@ def data_verification(message):
             pass
         bot.send_message(message.chat.id, "Регистрация успешно завершена", reply_markup= keyboard_description())
 
+############################################################### ХЕЛП #######################################################################
+
+@bot.message_handler(commands= 'help',content_types= 'text')
+def help(message):
+    bot.send_message(message.chat.id, "/help - посмотреть хелп\n/start - изменить почту и пароль")
+
 ############################################### ЗАПОЛНЕНИЕ ОПИСАНИЯ И ДОБАВЛЕНИЕ ВЛОЖЕНИЙ #########################################################
 
 @bot.message_handler(content_types=['document'])
