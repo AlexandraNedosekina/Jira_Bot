@@ -361,8 +361,9 @@ def callback_inline(call):
         elif call.data == 'EditDescription':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             usersDict[call.message.chat.id].description = ''
+            delete_files(call.message.chat.id)
+            usersDict[call.message.chat.id].attachCount = 0
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
-            bot.register_next_step_handler(call.message, set_description)
             bot.send_message(call.message.chat.id,
                              'введите описание, после чего нажмите кнопку \n!Завершить редактирование описания',
                              reply_markup= keyboard_edit_description())
