@@ -102,7 +102,9 @@ def set_description(message):
     try:
         if usersDict[message.chat.id].edit:
             if message.text == '!Завершить редактирование описания':
-                add_issue(message.chat.id)
+                add_issue(message)
+            elif message.text == '!Отменить постановку задачи':
+                cancel(message,False)
             else:
                 try:
                     usersDict[message.chat.id].description += message.text + '\n'# на случай если была отправлен какойто файлик вместо текста
@@ -127,7 +129,7 @@ def set_summary(message):
     elif message.content_type == 'text' and len(message.text) <= 255 and len(message.text.splitlines()) == 1:
         usersDict[message.chat.id].summary = message.text
         if usersDict[message.chat.id].edit:
-            add_issue(message.chat.id)
+            add_issue(message)
         else:
             set_issue_type(message)
     else:
@@ -178,13 +180,14 @@ def get_assignee(message):
             keys = list(usersDict[message.chat.id].hint.keys())
             for i in range(len(keys)):
                 keyboard.add(types.InlineKeyboardButton(text=keys[i], callback_data=keys[i]))
+            bot.register_next_step_handler(message, get_assignee)
             bot.send_message(message.chat.id,'Выберите Исполнителя.',reply_markup= keyboard)
         elif len(usersDict[message.chat.id].hint.keys()) == 1:
             assigneeItems = list(list(usersDict[message.chat.id].hint.items())[0])
             usersDict[message.chat.id].assigneeID_assigneName = [assigneeItems[1], assigneeItems[0]]
             bot.send_message(message.chat.id, f'Исполнитель: {usersDict[message.chat.id].assigneeID_assigneName[1]}.')
             if usersDict[message.chat.id].edit:
-                add_issue(message.chat.id)
+                add_issue(message)
             else:
                 set_priority(message)
         else:
@@ -226,39 +229,53 @@ def set_date(message):
 
 def add_date(message):
     bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
-    datemsg = message.text.split('.')
-    if len(datemsg) != 2 or len(datemsg[0]) != 2 or len(datemsg[1]) != 2:
-        datemsg = ['F']
-    try:
-        datemsg = list(map(int,datemsg))
-        year = date.today().year
-        if datemsg[1] < date.today().month or (datemsg[1] == date.today().month and datemsg[0]< date.today().day):
-            year+=1
-        date(year,datemsg[1],datemsg[0])
-    except:
-        if message.text == '!Отменить постановку задачи':
-            cancel(message,False)
+    if message.content_type == 'text':
+        datemsg = message.text.split('.')
+        if len(datemsg) != 2 or len(datemsg[0]) != 2 or len(datemsg[1]) != 2:
+            datemsg = ['F']
+        try:
+            datemsg = list(map(int,datemsg))
+            year = date.today().year
+            if datemsg[1] < date.today().month or (datemsg[1] == date.today().month and datemsg[0]< date.today().day):
+                year+=1
+            date(year,datemsg[1],datemsg[0])
+        except:
+            if message.text == '!Отменить постановку задачи':
+                cancel(message,False)
+            else:
+                bot.send_message(message.chat.id,'Дата введена некорректно')
+                set_date(message)
         else:
-            bot.send_message(message.chat.id,'Некорректно введена дата')
-            set_date(message)
+            usersDict[message.chat.id].date = message.text + '.' + str(year)
+            add_issue(message)
     else:
-        usersDict[message.chat.id].date = message.text + '.' + str(year)
-        add_issue(message.chat.id)
+        bot.send_message(message.chat.id,'Дата введена некорректно')
+        set_date(message)
 
 ####################################################### МЕТОД ДОБАВЛЕНИЯ ЗАДАЧИ В ДЖИРА ##########################################################################
 
-def add_issue(ID):
+def add_issue(message):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text='Да, отправить задачу в Jira', callback_data='Send'),
                  types.InlineKeyboardButton(text='Нет, выбрать редактируемые поля', callback_data='Edit'))
-    bot.send_message(ID, f'1.Тема: {usersDict[ID].summary}' +
-                                    f'\n2.Описание: {usersDict[ID].description[:-1]}' +
-                                    f'\n3.Тип: {usersDict[ID].issue_type}' +
-                                    f'\n4.Исполнитель: {usersDict[ID].assigneeID_assigneName[1]}' +
-                                    f'\n5.Приоритет: {priorityDict.get(usersDict[ID].priority)}' + 
-                                    f'\n6.Срок выполнения: {usersDict[ID].date}' + 
-                                    f'\nКоличество прикреплённых файлов: {str(usersDict[ID].attachCount)}')
-    bot.send_message(ID,"Данные введены верно?", reply_markup= keyboard)
+    bot.register_next_step_handler(message, massage_in_issue)
+    bot.send_message(message.chat.id, f'1.Тема: {usersDict[message.chat.id].summary}' +
+                                    f'\n2.Описание: {usersDict[message.chat.id].description[:-1]}' +
+                                    f'\n3.Тип: {usersDict[message.chat.id].issue_type}' +
+                                    f'\n4.Исполнитель: {usersDict[message.chat.id].assigneeID_assigneName[1]}' +
+                                    f'\n5.Приоритет: {priorityDict.get(usersDict[message.chat.id].priority)}' + 
+                                    f'\n6.Срок выполнения: {usersDict[message.chat.id].date}' + 
+                                    f'\nКоличество прикреплённых файлов: {str(usersDict[message.chat.id].attachCount)}',
+                                    reply_markup= keyboard_Cancel_issue())
+    bot.send_message(message.chat.id ,"Данные введены верно?", reply_markup= keyboard)
+
+def massage_in_issue(message):
+    if message.text == '!Отменить постановку задачи':
+        cancel(message,False)
+    else:
+        bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
+        bot.send_message(message.chat.id, 'Пожалуйста, выберите из предложенного.')
+        add_issue(message)
 
 ################################################### МЕТОД ДЛЯ ОБРАБОТКИ CALLBACK ДАННЫХ #########################################
 
@@ -272,7 +289,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].issue_type = call.data
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
-                add_issue(call.message.chat.id)
+                add_issue(call.message)
             else:
                 set_assignee(call.message)
 
@@ -283,7 +300,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].assigneeID_assigneName = usersDict[call.message.chat.id].accountId_DisplayName
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
-                add_issue(call.message.chat.id)
+                add_issue(call.message)
             else:
                 set_priority(call.message)
 
@@ -292,8 +309,9 @@ def callback_inline(call):
                                   message_id=call.message.message_id, 
                                   text=f'Исполнитель: {call.data}.')
             usersDict[call.message.chat.id].assigneeID_assigneName = [usersDict[call.message.chat.id].hint[call.data], call.data]
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
-                add_issue(call.message.chat.id)
+                add_issue(call.message)
             else:
                 set_priority(call.message)
 
@@ -304,7 +322,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].priority = call.data
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
-                add_issue(call.message.chat.id)
+                add_issue(call.message)
             else:
                 set_date(call.message)
 
@@ -314,7 +332,7 @@ def callback_inline(call):
                                   text='Без даты')
             usersDict[call.message.chat.id].date = 'Без даты'
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
-            add_issue(call.message.chat.id)
+            add_issue(call.message)
 
         elif call.data == 'Send':
             bot.edit_message_text(chat_id= call.message.chat.id,
@@ -337,38 +355,39 @@ def callback_inline(call):
 
         elif call.data == 'EditSummary':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             bot.register_next_step_handler(call.message, set_summary)
             bot.send_message(call.message.chat.id,'Введите тему задачи')
         elif call.data == 'EditDescription':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             usersDict[call.message.chat.id].description = ''
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             bot.register_next_step_handler(call.message, set_description)
             bot.send_message(call.message.chat.id,
                              'введите описание, после чего нажмите кнопку \n!Завершить редактирование описания',
                              reply_markup= keyboard_edit_description())
         elif call.data == 'EditTypeIssue':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             set_issue_type(call.message)
         elif call.data == 'EditAssignee':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             set_assignee(call.message)
         elif call.data == 'EditPriority':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             set_priority(call.message)
         elif call.data == 'EditDate':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             set_date(call.message)
         elif call.data == 'back':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
-            add_issue(call.message.chat.id)
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
+            add_issue(call.message)
             
 ######################################################### ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ########################################################
-
-def cancel_issue(message):
-    if message.text == '!Отменить постановку задачи':
-        cancel(message,False)
-    else:
-        bot.register_next_step_handler(message,cancel_issue)
 
 def keyboard_Cancel_issue():
     markup_reply = types.ReplyKeyboardMarkup(one_time_keyboard = True, resize_keyboard = True,)
@@ -388,7 +407,8 @@ def keyboard_edit_element():
 
 def keyboard_edit_description():
     markup_reply = types.ReplyKeyboardMarkup(one_time_keyboard = True, resize_keyboard = True)
-    markup_reply.add(types.KeyboardButton(text = '!Завершить редактирование описания'))
+    markup_reply.add(types.KeyboardButton(text = '!Отменить постановку задачи'),
+                     types.KeyboardButton(text = '!Завершить редактирование описания'))
     return markup_reply
 
 def keyboard_description():
@@ -396,7 +416,7 @@ def keyboard_description():
     item_add_issue = types.KeyboardButton(text = '!Поставить задачу')
     item_cancel_issue = types.KeyboardButton(text = '!Отменить постановку задачи')
 
-    markup_reply.add(item_add_issue,item_cancel_issue)
+    markup_reply.add(item_cancel_issue, item_add_issue)
     return markup_reply
 
 def delete_files(id):
