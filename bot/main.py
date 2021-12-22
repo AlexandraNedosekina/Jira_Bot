@@ -148,7 +148,7 @@ def set_issue_type(ID):
     if len(issuetypes) % 2 == 1:
         knops.append([types.InlineKeyboardButton(text=issuetypes[len(issuetypes) - 1], callback_data=issuetypes[len(issuetypes) - 1])])
     keyboard = types.InlineKeyboardMarkup(knops)
-    
+
     bot.send_message(ID,'Выберите тип задачи:', reply_markup= keyboard)
 
 ################################################### НАЗНАЧЕНИЕ ИСПОЛНИТЕЛЯ ########################################################
@@ -200,12 +200,18 @@ def set_date(message):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text="Пропустить", callback_data="SkipDate"))
     bot.register_next_step_handler(message, add_date)
-    bot.send_message(message.chat.id,'Введите дату выполнения в формате ДД.ММ.ГГГГ:',reply_markup= keyboard)
+    bot.send_message(message.chat.id,'Введите дату выполнения в формате ДД.ММ:',reply_markup= keyboard)
 
 def add_date(message):
+    datemsg = message.text.split('.')
+    if len(datemsg) != 2 or len(datemsg[0]) != 2 or len(datemsg[1]) != 2:
+        datemsg = ['F']
     try:
-        date_message= message.text.split(".")
-        date(int(date_message[2]), int(date_message[1]), int(date_message[0]))
+        datemsg = list(map(int,datemsg))
+        year = date.today().year
+        if datemsg[1] < date.today().month or (datemsg[1] == date.today().month and datemsg[0]< date.today().day):
+            year+=1
+        date(year,datemsg[1],datemsg[0])
     except:
         if message.text == '!Отменить постановку задачи':
             cancel(message,False)
@@ -213,7 +219,7 @@ def add_date(message):
             bot.send_message(message.chat.id,'Некорректно введена дата')
             set_date(message)
     else:
-        usersDict[message.chat.id].date = message.text
+        usersDict[message.chat.id].date = message.text + '.' + str(year)
         add_issue(message.chat.id)
 
 ####################################################### МЕТОД ДОБАВЛЕНИЯ ЗАДАЧИ В ДЖИРА ##########################################################################
