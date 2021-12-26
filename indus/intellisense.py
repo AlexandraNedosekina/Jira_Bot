@@ -8,7 +8,8 @@ def get_assigneeID(email, apitoken, namep):
         "Accept": "application/json",
         "Content-Type": "application/json"
     }
-    namep.lower()
+    namep = namep.lower()
+    print (namep)
     response=requests.get(url,headers=headers,auth=(email, apitoken))
     data = response.json()
     vse={}
@@ -19,12 +20,13 @@ def get_assigneeID(email, apitoken, namep):
     print(vse)
     for fullname in list(vse.keys()):
         for name in fullname.split(' '):
-            name.lower()
+            name = name.lower()
+            print (name)
             if name.startswith(namep):
                 nujnie[fullname] = vse[fullname]
     return nujnie
 
-print(get_assigneeID('najdenov773@gmail.com','Q746KStEfUGMg1oIc9YE2DCD','M'))
+print(get_assigneeID('najdenov773@gmail.com','Q746KStEfUGMg1oIc9YE2DCD','m'))
 
 dic={
     'A A': '1',

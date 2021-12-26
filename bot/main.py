@@ -31,13 +31,19 @@ class Data():
     attachName = {}
 
     issue_types = []
+    Itdescription = True
     edit = False
 
 ################################################################# РЕГИСТРАЦИЯ ###########################################################
 
 @bot.message_handler(commands= 'start',content_types= 'text')
 def start(message):
-    usersDict[message.chat.id] = Data()
+    try:
+        if usersDict[message.chat.id].description != '' or usersDict[message.chat.id].edit or usersDict[message.chat.id].attachCount != 0:
+            cancel(message, False)
+    except:
+        usersDict[message.chat.id] = Data()
+    usersDict[message.chat.id].Itdescription = False
     bot.register_next_step_handler(message, get_email)
     bot.send_message(message.chat.id, "Введите вашу почту для регистрации.")
     
@@ -61,35 +67,41 @@ def data_verification(message):
         except:
             pass
         bot.send_message(message.chat.id, "Регистрация успешно завершена", reply_markup= keyboard_description())
+        usersDict[message.chat.id].Itdescription = True
+        help(message)
 
 ############################################################### ХЕЛП #######################################################################
 
 @bot.message_handler(commands= 'help',content_types= 'text')
 def help(message):
-    bot.send_message(message.chat.id, "/help - посмотреть хелп.\n/start - изменить почту и пароль.")
+    try:
+        bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
+    except:
+        pass
+    bot.send_message(message.chat.id, "Список команд:\n/help - посмотреть хелп.\n/start - изменить почту и пароль.\n\nКраткая инструкция:\nДима гей")
 
 ############################################### ЗАПОЛНЕНИЕ ОПИСАНИЯ И ДОБАВЛЕНИЕ ВЛОЖЕНИЙ #########################################################
 
 @bot.message_handler(content_types=['document'])
 def attach_document(message):
-    #try:
-        try:
-            usersDict[message.chat.id].description += message.caption + ' '
-        except:
-            pass
-        usersDict[message.chat.id].attachCount += 1
-        i = str(usersDict[message.chat.id].attachCount)
-        usersDict[message.chat.id].description += '(' + i + ')\n'
-        name = message.document.file_name.split('.')
-        file_info = bot.get_file(message.document.file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
-        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + i + '.' + name[len(name) - 1]
-        usersDict[message.chat.id].attachName[int(i)] = i + '.' + name[len(name) - 1]
-        with open(src, 'wb') as new_file:
-            new_file.write(downloaded_file)
-        
-    #except:
-    #x    start(message)
+    try:
+        if usersDict[message.chat.id].Itdescription:
+            try:
+                usersDict[message.chat.id].description += message.caption + ' '
+            except:
+                pass
+            usersDict[message.chat.id].attachCount += 1
+            i = str(usersDict[message.chat.id].attachCount)
+            usersDict[message.chat.id].description += '(' + i + ')\n'
+            name = message.document.file_name.split('.')
+            file_info = bot.get_file(message.document.file_id)
+            downloaded_file = bot.download_file(file_info.file_path)
+            src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + i + '.' + name[len(name) - 1]
+            usersDict[message.chat.id].attachName[int(i)] = i + '.' + name[len(name) - 1]
+            with open(src, 'wb') as new_file:
+                new_file.write(downloaded_file)
+    except:
+        start(message)
         
 @bot.message_handler(content_types=['photo'])
 def attach_photo(message):
@@ -106,24 +118,28 @@ def attach_audio(message):
 @bot.message_handler(content_types=['text'])
 def set_description(message):
     try:
-        if usersDict[message.chat.id].edit:
-            if message.text == '!Завершить редактирование описания':
-                add_issue(message)
-            elif message.text == '!Отменить постановку задачи':
-                cancel(message,False)
+        if usersDict[message.chat.id].Itdescription:
+            if usersDict[message.chat.id].edit:
+                if message.text == '!Завершить редактирование описания':
+                    usersDict[message.chat.id].Itdescription = False
+                    usersDict[message.chat.id].edit = False
+                    add_issue(message)
+                elif message.text == '!Отменить постановку задачи':
+                    cancel(message,False)
+                else:
+                    try:
+                        usersDict[message.chat.id].description += message.text + '\n'# на случай если была отправлен какойто файлик вместо текста
+                    except:
+                        pass
             else:
-                try:
-                    usersDict[message.chat.id].description += message.text + '\n'# на случай если была отправлен какойто файлик вместо текста
-                except:
-                    pass
-        else:
-            if message.text == '!Поставить задачу':
-                bot.register_next_step_handler(message, set_summary)
-                bot.send_message(message.chat.id,'Введите тему задачи:', reply_markup= keyboard_Cancel_issue())
-            elif message.text == '!Отменить постановку задачи':
-                cancel(message,False)
-            else:
-                usersDict[message.chat.id].description += message.text + '\n'
+                if message.text == '!Поставить задачу':
+                    usersDict[message.chat.id].Itdescription = False
+                    bot.register_next_step_handler(message, set_summary)
+                    bot.send_message(message.chat.id,'Введите тему задачи:', reply_markup= keyboard_Cancel_issue())
+                elif message.text == '!Отменить постановку задачи':
+                    cancel(message,False)
+                else:
+                    usersDict[message.chat.id].description += message.text + '\n'
     except:
         start(message)
 
@@ -132,15 +148,27 @@ def set_description(message):
 def set_summary(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
+    elif message.text == '/start':
+        #cancel(message,False)
+        start(message)
     elif message.content_type == 'text' and len(message.text) <= 255 and len(message.text.splitlines()) == 1:
-        usersDict[message.chat.id].summary = message.text
-        if usersDict[message.chat.id].edit:
-            add_issue(message)
+        if message.text == '/help':
+            help(message)
+            bot.register_next_step_handler(message, set_summary)
+            bot.send_message(message.chat.id,'Введите тему задачи:')
         else:
-            set_issue_type(message)
+            usersDict[message.chat.id].summary = message.text
+            if usersDict[message.chat.id].edit:
+                usersDict[message.chat.id].edit = False
+                add_issue(message)
+            else:
+                set_issue_type(message)
     else:
         bot.register_next_step_handler(message, set_summary)
-        bot.send_message(message.chat.id, 'Данные введены неверно.\nВведите тему в одну строку и не больше 255 символов.')
+        if message.content_type == 'text':
+            bot.send_message(message.chat.id, 'Данные введены неверно.\nВведите тему в одну строку и не больше 255 символов.')
+        else:
+            bot.send_message(message.chat.id, 'Вложения нельзя добавить после начала создания задачи.')
 
 ################################################## ЗАПОЛНЕНИЕ ТИПА ЗАДАЧИ ####################################################################
 
@@ -163,9 +191,17 @@ def set_issue_type(message):
 def message_in_issue_type(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
+    elif message.text == '/start':
+        cancel(message,False)
+        start(message)
+    elif message.text == '/help':
+        help(message)
+        set_issue_type(message)
     else:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
-        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным типом задачи.')
+        if message.content_type != 'text':
+            bot.send_message(message.chat.id, 'Вложения нельзя добавить после начала создания задачи.')
+        bot.send_message(message.chat.id, 'Выберите из предложенного.')
         set_issue_type(message)
         
 
@@ -193,17 +229,24 @@ def get_assignee(message):
             usersDict[message.chat.id].assigneeID_assigneName = [assigneeItems[1], assigneeItems[0]]
             bot.send_message(message.chat.id, f'Исполнитель: {usersDict[message.chat.id].assigneeID_assigneName[1]}.')
             if usersDict[message.chat.id].edit:
+                usersDict[message.chat.id].edit = False
                 add_issue(message)
             else:
                 set_priority(message)
         else:
             if message.text == '!Отменить постановку задачи':
                 cancel(message,False)
+            elif message.text == '/start':
+                cancel(message,False)
+                start(message)
+            elif message.text == '/help':
+                help(message)
+                set_assignee(message)
             else:
                 bot.send_message(message.chat.id, 'Такой пользователь не найден!')
                 set_assignee(message)
     else:
-        bot.send_message(message.chat.id, 'Неверный формат сообщения.')
+        bot.send_message(message.chat.id, 'Вложения нельзя добавить после начала создания задачи.')
         set_assignee(message)
 ################################################## МЕТОД ДЛЯ УСТАНОВКИ ПРИОРИТЕТА ЗАДАЧИ #################################################
 
@@ -220,9 +263,17 @@ def set_priority(message):
 def message_in_priority(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
+    elif message.text == '/start':
+        cancel(message,False)
+        start(message)
+    elif message.text == '/help':
+        help(message)
+        set_priority(message)
     else:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
-        bot.send_message(message.chat.id, 'Нажмите на кнопку с нужным приоритетом.')
+        if message.content_type != 'text':
+            bot.send_message(message.chat.id, 'Вложения нельзя добавить после начала создания задачи.')
+        bot.send_message(message.chat.id, 'Выберите из предложенного.')
         set_priority(message)
 
 ###################################################### МЕТОД ДЛЯ УСТАНОВКИ ДАТЫ ##########################################################
@@ -248,14 +299,21 @@ def add_date(message):
         except:
             if message.text == '!Отменить постановку задачи':
                 cancel(message,False)
+            elif message.text == '/start':
+                cancel(message,False)
+                start(message)
+            elif message.text == '/help':
+                help(message)
+                set_date(message)
             else:
                 bot.send_message(message.chat.id,'Дата введена некорректно.')
                 set_date(message)
         else:
             usersDict[message.chat.id].date = message.text + '.' + str(year)
+            usersDict[message.chat.id].edit = False
             add_issue(message)
     else:
-        bot.send_message(message.chat.id,'Дата введена некорректно.')
+        bot.send_message(message.chat.id,'Вложения нельзя добавить после начала создания задачи.')
         set_date(message)
 
 ####################################################### МЕТОД ДОБАВЛЕНИЯ ЗАДАЧИ В ДЖИРА ##########################################################################
@@ -273,14 +331,25 @@ def add_issue(message):
                                     f'\n6.Срок выполнения: {usersDict[message.chat.id].date}' + 
                                     f'\nКоличество прикреплённых файлов: {str(usersDict[message.chat.id].attachCount)}',
                                     reply_markup= keyboard_Cancel_issue())
-    bot.send_message(message.chat.id ,"Данные введены верно?", reply_markup= keyboard)
+    if usersDict[message.chat.id].edit:
+        bot.send_message(message.chat.id ,"Выберите редактируемый поле:", reply_markup= keyboard_edit_element())
+    else:
+        bot.send_message(message.chat.id ,"Данные введены верно?", reply_markup= keyboard)
 
 def massage_in_issue(message):
     if message.text == '!Отменить постановку задачи':
         cancel(message,False)
+    elif message.text == '/start':
+        cancel(message,False)
+        start(message)
+    elif message.text == '/help':
+        help(message)
+        add_issue(message)
     else:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
-        bot.send_message(message.chat.id, 'Пожалуйста, выберите из предложенного.')
+        if message.content_type != 'text':
+            bot.send_message(message.chat.id, 'Вложения нельзя добавить после начала создания задачи.')
+        bot.send_message(message.chat.id, 'Выберите из предложенного.')
         add_issue(message)
 
 ################################################### МЕТОД ДЛЯ ОБРАБОТКИ CALLBACK ДАННЫХ #########################################
@@ -295,6 +364,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].issue_type = call.data
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
+                usersDict[call.message.chat.id].edit = False
                 add_issue(call.message)
             else:
                 set_assignee(call.message)
@@ -306,6 +376,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].assigneeID_assigneName = usersDict[call.message.chat.id].accountId_DisplayName
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
+                usersDict[call.message.chat.id].edit = False
                 add_issue(call.message)
             else:
                 set_priority(call.message)
@@ -317,6 +388,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].assigneeID_assigneName = [usersDict[call.message.chat.id].hint[call.data], call.data]
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
+                usersDict[call.message.chat.id].edit = False
                 add_issue(call.message)
             else:
                 set_priority(call.message)
@@ -328,6 +400,7 @@ def callback_inline(call):
             usersDict[call.message.chat.id].priority = call.data
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
             if usersDict[call.message.chat.id].edit:
+                usersDict[call.message.chat.id].edit = False
                 add_issue(call.message)
             else:
                 set_date(call.message)
@@ -338,19 +411,24 @@ def callback_inline(call):
                                   text='Без даты')
             usersDict[call.message.chat.id].date = 'Без даты'
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
+            usersDict[call.message.chat.id].edit = False
             add_issue(call.message)
 
         elif call.data == 'Send':
             bot.edit_message_text(chat_id= call.message.chat.id,
                                   message_id=call.message.message_id, 
                                   text="Задача отправлена в Jira.")
-            issue = create_issue(usersDict[call.message.chat.id].email, usersDict[call.message.chat.id].password,
+            try:
+                issue = create_issue(usersDict[call.message.chat.id].email, usersDict[call.message.chat.id].password,
                                  usersDict[call.message.chat.id].summary, usersDict[call.message.chat.id].description,
                                  usersDict[call.message.chat.id].issue_type, usersDict[call.message.chat.id].priority,
                                  usersDict[call.message.chat.id].date.split('.'), usersDict[call.message.chat.id].assigneeID_assigneName[0])
-            send_attachments(call.message.chat.id,issue)
-            cancel(call.message, True)
-            bot.send_message(call.message.chat.id, "Задача поставлена в Jira.",reply_markup= keyboard_description())
+                send_attachments(call.message.chat.id,issue)
+                cancel(call.message, True)
+                bot.send_message(call.message.chat.id, "Задача поставлена в Jira.",reply_markup= keyboard_description())
+            except:
+                bot.send_message(call.message.chat.id, "Непредвиденная ошибка.",reply_markup= keyboard_description())
+                cancel(call.message, False)
 
         elif call.data == 'Edit':
             bot.edit_message_text(chat_id= call.message.chat.id, 
@@ -370,6 +448,7 @@ def callback_inline(call):
             delete_files(call.message.chat.id)
             usersDict[call.message.chat.id].attachCount = 0
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
+            usersDict[call.message.chat.id].Itdescription = True
             bot.send_message(call.message.chat.id,
                              'введите описание, после чего нажмите кнопку \n!Завершить редактирование описания.',
                              reply_markup= keyboard_edit_description())
@@ -392,6 +471,7 @@ def callback_inline(call):
         elif call.data == 'back':
             bot.edit_message_reply_markup(call.message.chat.id, message_id= call.message.message_id, reply_markup= None)
             bot.clear_step_handler_by_chat_id(call.message.chat.id)
+            usersDict[call.message.chat.id].edit = False
             add_issue(call.message)
             
 ######################################################### ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ########################################################
@@ -438,19 +518,20 @@ def send_attachments(ID,issue):
 
 def download_file(message,file):
     try:
-        try:
-            usersDict[message.chat.id].description += message.caption + ' '
-        except:
-            pass
-        usersDict[message.chat.id].attachCount += 1
-        i = str(usersDict[message.chat.id].attachCount)
-        usersDict[message.chat.id].description += '(' + i + ')\n'
-        file_info = bot.get_file(file.split('.')[0])
-        downloaded_file = bot.download_file(file_info.file_path)
-        src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + i + '.' + file.split('.')[1]
-        usersDict[message.chat.id].attachName[int(i)] = i + '.' + file.split('.')[1]
-        with open(src, 'wb') as new_file:
-            new_file.write(downloaded_file)
+        if usersDict[message.chat.id].Itdescription:
+            try:
+                usersDict[message.chat.id].description += message.caption + ' '
+            except:
+                pass
+            usersDict[message.chat.id].attachCount += 1
+            i = str(usersDict[message.chat.id].attachCount)
+            usersDict[message.chat.id].description += '(' + i + ')\n'
+            file_info = bot.get_file(file.split('.')[0])
+            downloaded_file = bot.download_file(file_info.file_path)
+            src = 'bot\descriptions\\' + str(message.chat.id) + '_attacments\\' + i + '.' + file.split('.')[1]
+            usersDict[message.chat.id].attachName[int(i)] = i + '.' + file.split('.')[1]
+            with open(src, 'wb') as new_file:
+                new_file.write(downloaded_file)
     except:
         start(message)
 
@@ -466,6 +547,7 @@ def cancel(message,send):
     usersDict[message.chat.id].attachCount = 0
     usersDict[message.chat.id].hint = {}
     usersDict[message.chat.id].attachName = {}
+    usersDict[message.chat.id].Itdescription = True
     try:
         bot.edit_message_reply_markup(message.chat.id, message_id= message.message_id-1, reply_markup= None)
     except:

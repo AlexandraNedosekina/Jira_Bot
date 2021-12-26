@@ -32,7 +32,7 @@ def get_assigneeID(email, apitoken, partname):
     }
     response=requests.get(url,headers=headers,auth=(email, apitoken))
     data = response.json()
-    partname.lower()
+    partname = partname.lower()
     allusers={}
     needusers={}
     for users in data:
@@ -40,7 +40,7 @@ def get_assigneeID(email, apitoken, partname):
             allusers[users['displayName']] = users['accountId']
     for fullname in list(allusers.keys()):
         for name in fullname.split(' '):
-            name.lower()
+            name = name.lower()
             if name.startswith(partname):
                 needusers[fullname] = allusers[fullname]
     return needusers
