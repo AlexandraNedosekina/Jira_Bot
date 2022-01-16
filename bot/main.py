@@ -489,7 +489,7 @@ def keyboard_edit_element():
                  types.InlineKeyboardButton(text='Исполнитель', callback_data='EditAssignee'),
                  types.InlineKeyboardButton(text='Приоритет', callback_data='EditPriority'),
                  types.InlineKeyboardButton(text='Срок выполнения', callback_data='EditDate'))
-    keyboard.add(types.InlineKeyboardButton(text='Обратно', callback_data='back'))
+    keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
     return keyboard
 
 def keyboard_edit_description():
