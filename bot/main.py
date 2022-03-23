@@ -418,7 +418,6 @@ def callback_inline(call):
             bot.edit_message_text(chat_id= call.message.chat.id,
                                   message_id=call.message.message_id, 
                                   text="Задача отправлена в Jira.")
-            bot.clear_step_handler_by_chat_id(call.message.chat.id)
             try:
                 issue = create_issue(usersDict[call.message.chat.id].email, usersDict[call.message.chat.id].password,
                                  usersDict[call.message.chat.id].summary, usersDict[call.message.chat.id].description,
